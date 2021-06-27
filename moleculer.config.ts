@@ -1,5 +1,10 @@
 "use strict";
-import {BrokerOptions, Errors, MetricRegistry, ServiceBroker} from "moleculer";
+import {
+	BrokerOptions,
+	Errors,
+	MetricRegistry,
+	ServiceBroker,
+} from "moleculer";
 
 /**
  * Moleculer ServiceBroker configuration file
@@ -63,7 +68,7 @@ const brokerConfig: BrokerOptions = {
 
 	// Define a cacher.
 	// More info: https://moleculer.services/docs/0.14/caching.html
-    cacher: "Memory",
+	cacher: "Memory",
 
 	// Define a serializer.
 	// Available values: "JSON", "Avro", "ProtoBuf", "MsgPack", "Notepack", "Thrift".
@@ -153,7 +158,7 @@ const brokerConfig: BrokerOptions = {
 
 	// Enable/disable built-in metrics function. More info: https://moleculer.services/docs/0.14/metrics.html
 	metrics: {
-		enabled: true,
+		enabled: false,
 		// Available built-in reporters: "Console", "CSV", "Event", "Prometheus", "Datadog", "StatsD"
 		reporter: {
 			type: "Console",
@@ -180,12 +185,12 @@ const brokerConfig: BrokerOptions = {
 			options: {
 				// Custom logger
 				logger: null,
-					// Using colors
-					colors: true,
-					// Width of row
-					width: 100,
-					// Gauge width in the row
-					gaugeWidth: 40,
+				// Using colors
+				colors: true,
+				// Width of row
+				width: 100,
+				// Gauge width in the row
+				gaugeWidth: 40,
 			},
 		},
 	},
@@ -202,7 +207,6 @@ const brokerConfig: BrokerOptions = {
 	started: async (broker: ServiceBroker): Promise<void> => {},
 	stopped: async (broker: ServiceBroker): Promise<void> => {},
 	 */
-
 };
 
 export = brokerConfig;
