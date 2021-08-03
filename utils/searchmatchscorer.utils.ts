@@ -35,26 +35,24 @@ import { createWriteStream } from "fs";
 import path from "path";
 import https from "https";
 import stringSimilarity from "string-similarity";
-import { each, isNil, isNull, isUndefined } from "lodash";
+import { each, isNil, map, isNull, isUndefined } from "lodash";
 import leven from "leven";
 
 const imghash = require("imghash");
 
-export const matchScorer = (
+export const matchScorer = async (
 	searchMatches: any,
 	searchQuery: any,
 	rawFileDetails: any
-) => {
+): Promise<any> => {
 	// 1. Check if it exists in the db (score: 0)
 	// 2. Check if issue name matches strongly (score: ++)
 	// 3. Check if issue number matches strongly (score: ++)
 	// 4. Check if issue covers hash match strongly (score: +++)
 	// 5. Check if issue year matches strongly (score: +)
-
-	each(searchMatches, (match, idx) => {
+	const scoredMatches = map(searchMatches, async (match, idx) => {
 		match.score = 0;
 		// Check for the issue name match
-
 		if (
 			!isNil(searchQuery.issue.searchParams.searchTerms.name) &&
 			!isNil(match.name)
@@ -80,20 +78,17 @@ export const matchScorer = (
 				match.score += 1;
 			}
 		}
-        const foo = calculateLevenshteinDistance(rawFileDetails, match);
-        console.log("MAST", foo);
+		// Cover image hash match
+		return await calculateLevenshteinDistance(match, rawFileDetails);
 	});
-
-	return searchMatches;
+	return Promise.all(scoredMatches);
 };
 
-
-const calculateLevenshteinDistance = (rawFileDetails: any, match: any) => {
-	const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
-	const file = createWriteStream(`./userdata/temporary/${fileName}`);
-    let levenshteinDistance;
-	https
-		.get(match.image.small_url, (response) => {
+const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
+	new Promise((resolve, reject) => {
+		https.get(match.image.small_url, (response: any) => {
+			const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
+			const file = createWriteStream(`./userdata/temporary/${fileName}`);
 			const fileStream = response.pipe(file);
 			fileStream.on("finish", async () => {
 				const hash1 = await imghash.hash(
@@ -103,7 +98,7 @@ const calculateLevenshteinDistance = (rawFileDetails: any, match: any) => {
 					path.resolve(`./userdata/temporary/${fileName}`)
 				);
 				if (!isUndefined(hash1) && !isUndefined(hash2)) {
-					levenshteinDistance = leven(hash1, hash2);
+					const levenshteinDistance = leven(hash1, hash2);
 					if (levenshteinDistance === 0) {
 						match.score += 4;
 					} else if (
@@ -114,15 +109,10 @@ const calculateLevenshteinDistance = (rawFileDetails: any, match: any) => {
 					} else {
 						match.score -= 4;
 					}
+					resolve(match);
 				} else {
-					console.log("Couldn't calculate image hashes");
+					reject({ error: "bastard couldn't calculate hashes" });
 				}
-				console.log("MATCH SCORE inside:", match.score);
 			});
 		});
-        console.log(levenshteinDistance);
-        return match;
-
-};
-
-
+	});
