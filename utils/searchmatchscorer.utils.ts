@@ -40,7 +40,11 @@ import leven from "leven";
 
 const imghash = require("imghash");
 
-export const matchScorer = (searchMatches: any , searchQuery: any, rawFileDetails: any) => {
+export const matchScorer = (
+	searchMatches: any,
+	searchQuery: any,
+	rawFileDetails: any
+) => {
 	// 1. Check if it exists in the db (score: 0)
 	// 2. Check if issue name matches strongly (score: ++)
 	// 3. Check if issue number matches strongly (score: ++)
@@ -76,12 +80,20 @@ export const matchScorer = (searchMatches: any , searchQuery: any, rawFileDetail
 				match.score += 1;
 			}
 		}
-		// Cover image hash match
-		const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
+        const foo = calculateLevenshteinDistance(rawFileDetails, match);
+        console.log("MAST", foo);
+	});
 
-		const file = createWriteStream(`./userdata/temporary/${fileName}`);
+	return searchMatches;
+};
 
-		https.get(match.image.small_url, (response) => {
+
+const calculateLevenshteinDistance = (rawFileDetails: any, match: any) => {
+	const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
+	const file = createWriteStream(`./userdata/temporary/${fileName}`);
+    let levenshteinDistance;
+	https
+		.get(match.image.small_url, (response) => {
 			const fileStream = response.pipe(file);
 			fileStream.on("finish", async () => {
 				const hash1 = await imghash.hash(
@@ -91,10 +103,13 @@ export const matchScorer = (searchMatches: any , searchQuery: any, rawFileDetail
 					path.resolve(`./userdata/temporary/${fileName}`)
 				);
 				if (!isUndefined(hash1) && !isUndefined(hash2)) {
-					const levenshteinDistance = leven(hash1, hash2);
+					levenshteinDistance = leven(hash1, hash2);
 					if (levenshteinDistance === 0) {
 						match.score += 4;
-					} else if(levenshteinDistance > 0 && levenshteinDistance <= 2){
+					} else if (
+						levenshteinDistance > 0 &&
+						levenshteinDistance <= 2
+					) {
 						match.score += 2;
 					} else {
 						match.score -= 4;
@@ -103,13 +118,11 @@ export const matchScorer = (searchMatches: any , searchQuery: any, rawFileDetail
 					console.log("Couldn't calculate image hashes");
 				}
 				console.log("MATCH SCORE inside:", match.score);
-
 			});
-		}).end();
-		console.log("MATCH SCORE OUTSIDE:", match.score)
-	});
-	
+		});
+        console.log(levenshteinDistance);
+        return match;
 
-	return searchMatches;
 };
+
 
