@@ -66,3 +66,4 @@ typings/
 # Don't track transpiled files
 dist/
 .vscode
+userdata

@@ -1,8 +1,12 @@
 "use strict";
 
+import { createWriteStream } from "fs";
+import path from "path";
+import https from "https";
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import {matchScorer} from "../utils/searchmatchscorer.utils";
+import leven from "leven";
+import { matchScorer } from "../utils/searchmatchscorer.utils";
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 const CV_API_KEY = "a5fa0663683df8145a85d694b5da4b87e1c92c69";
 
@@ -32,6 +36,13 @@ export default class GreeterService extends Service {
 							limit: string;
 							offset: string;
 							resources: string;
+							scorerData: {
+								searchQuery: {
+									issue: object;
+									series: object;
+								};
+								rawFileDetails: object;
+							};
 						}>
 					): Promise<any> => {
 						const response = await axios.request({
@@ -41,22 +52,18 @@ export default class GreeterService extends Service {
 								"?api_key=" +
 								CV_API_KEY,
 							params: ctx.params,
-							transformResponse: r => JSON.parse(r),
+							transformResponse: r => {
+								const matches = JSON.parse(r);
+								return matchScorer(
+									matches.results,
+									ctx.params.scorerData.searchQuery,
+									ctx.params.scorerData.rawFileDetails
+								);
+							},
 							headers: { Accept: "application/json" },
 						});
 						const { data } = response;
 						return data;
-					},
-				},
-				getScoredComicVineMatches: {
-					rest: "/getscoredcomicvinematches",
-					params: {},
-					handler: async (
-						ctx: Context<{
-
-						}>
-					): Promise<any> => {
-						return matchScorer()
 					},
 				},
 			},

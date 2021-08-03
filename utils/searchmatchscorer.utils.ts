@@ -35,12 +35,12 @@ import { createWriteStream } from "fs";
 import path from "path";
 import https from "https";
 import stringSimilarity from "string-similarity";
-import { each, map, isUndefined, isNull, assign } from "lodash";
+import { each, isNil, isNull, isUndefined } from "lodash";
 import leven from "leven";
 
 const imghash = require("imghash");
 
-export const matchScorer = (searchMatches, searchQuery, rawFileDetails) => {
+export const matchScorer = (searchMatches: any , searchQuery: any, rawFileDetails: any) => {
 	// 1. Check if it exists in the db (score: 0)
 	// 2. Check if issue name matches strongly (score: ++)
 	// 3. Check if issue number matches strongly (score: ++)
@@ -48,11 +48,12 @@ export const matchScorer = (searchMatches, searchQuery, rawFileDetails) => {
 	// 5. Check if issue year matches strongly (score: +)
 
 	each(searchMatches, (match, idx) => {
+		match.score = 0;
 		// Check for the issue name match
 
 		if (
-			!isNull(searchQuery.issue.searchParams.searchTerms.name) &&
-			!isNull(match.name)
+			!isNil(searchQuery.issue.searchParams.searchTerms.name) &&
+			!isNil(match.name)
 		) {
 			const issueNameScore = stringSimilarity.compareTwoStrings(
 				searchQuery.issue.searchParams.searchTerms.name,
@@ -63,8 +64,8 @@ export const matchScorer = (searchMatches, searchQuery, rawFileDetails) => {
 
 		// Issue number matches
 		if (
-			!isNull(searchQuery.issue.searchParams.searchTerms.number) &&
-			!isNull(match.issue_number)
+			!isNil(searchQuery.issue.searchParams.searchTerms.number) &&
+			!isNil(match.issue_number)
 		) {
 			if (
 				parseInt(
@@ -76,27 +77,39 @@ export const matchScorer = (searchMatches, searchQuery, rawFileDetails) => {
 			}
 		}
 		// Cover image hash match
-		const fileName = match.id + "_" + rawFileDetails.name;
-		https.get(match.image.small_url, response => {
-			const fileStream = response.pipe(
-				createWriteStream(`./userdata/temporary/${fileName}`)
-			);
+		const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
+
+		const file = createWriteStream(`./userdata/temporary/${fileName}`);
+
+		https.get(match.image.small_url, (response) => {
+			const fileStream = response.pipe(file);
 			fileStream.on("finish", async () => {
-				const hash1 = await imghash.hash(fileName);
+				const hash1 = await imghash.hash(
+					path.resolve(rawFileDetails.path)
+				);
 				const hash2 = await imghash.hash(
 					path.resolve(`./userdata/temporary/${fileName}`)
 				);
-				const levenshteinDistance = leven(hash1, hash2);
-                if (levenshteinDistance === 0) {
-                    match.score += 4;
-                  } else {
-                    match.score -= 4;
-                  }
-			});
-		});
+				if (!isUndefined(hash1) && !isUndefined(hash2)) {
+					const levenshteinDistance = leven(hash1, hash2);
+					if (levenshteinDistance === 0) {
+						match.score += 4;
+					} else if(levenshteinDistance > 0 && levenshteinDistance <= 2){
+						match.score += 2;
+					} else {
+						match.score -= 4;
+					}
+				} else {
+					console.log("Couldn't calculate image hashes");
+				}
+				console.log("MATCH SCORE inside:", match.score);
 
-		return match;
+			});
+		}).end();
+		console.log("MATCH SCORE OUTSIDE:", match.score)
 	});
+	
 
 	return searchMatches;
 };
+
