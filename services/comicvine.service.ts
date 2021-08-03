@@ -36,7 +36,7 @@ export default class GreeterService extends Service {
 							limit: string;
 							offset: string;
 							resources: string;
-							scorerData: {
+							scorerConfiguration: {
 								searchQuery: {
 									issue: object;
 									series: object;
@@ -56,8 +56,8 @@ export default class GreeterService extends Service {
 								const matches = JSON.parse(r);
 								return matchScorer(
 									matches.results,
-									ctx.params.scorerData.searchQuery,
-									ctx.params.scorerData.rawFileDetails
+									ctx.params.scorerConfiguration.searchQuery,
+									ctx.params.scorerConfiguration.rawFileDetails
 								);
 							},
 							headers: { Accept: "application/json" },
