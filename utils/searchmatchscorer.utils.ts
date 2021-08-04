@@ -35,7 +35,7 @@ import { createWriteStream } from "fs";
 import path from "path";
 import https from "https";
 import stringSimilarity from "string-similarity";
-import { each, isNil, map, isNull, isUndefined } from "lodash";
+import { isNil, map, isUndefined } from "lodash";
 import leven from "leven";
 
 const imghash = require("imghash");
@@ -100,14 +100,14 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 				if (!isUndefined(hash1) && !isUndefined(hash2)) {
 					const levenshteinDistance = leven(hash1, hash2);
 					if (levenshteinDistance === 0) {
-						match.score += 4;
+						match.score += 2;
 					} else if (
 						levenshteinDistance > 0 &&
 						levenshteinDistance <= 2
 					) {
-						match.score += 2;
+						match.score += 1;
 					} else {
-						match.score -= 4;
+						match.score -= 2;
 					}
 					resolve(match);
 				} else {

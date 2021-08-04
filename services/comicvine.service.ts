@@ -1,8 +1,5 @@
 "use strict";
 
-import { createWriteStream } from "fs";
-import path from "path";
-import https from "https";
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import leven from "leven";
