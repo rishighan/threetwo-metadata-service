@@ -19,6 +19,20 @@ export default class ApiService extends Service {
 						whitelist: ["**"],
 						use: [],
 						mergeParams: true,
+						cors: {
+							origin: "*",
+							methods: [
+								"GET",
+								"OPTIONS",
+								"POST",
+								"PUT",
+								"DELETE",
+							],
+							allowedHeaders: ["*"],
+							exposedHeaders: [],
+							credentials: false,
+							maxAge: 3600,
+						},
 
 						authentication: false,
 						authorization: false,
