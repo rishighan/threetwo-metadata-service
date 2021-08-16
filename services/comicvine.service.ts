@@ -14,7 +14,7 @@ export default class GreeterService extends Service {
 			name: "comicvine",
 			actions: {
 				fetchSeries: {
-					rest: "/fetchseries",
+					rest: "/fetchresource",
 					params: {
 						format: { type: "string", optional: false },
 						sort: { type: "string", optional: true },
@@ -57,6 +57,31 @@ export default class GreeterService extends Service {
 									ctx.params.scorerConfiguration.rawFileDetails
 								);
 							},
+							headers: { Accept: "application/json" },
+						});
+						const { data } = response;
+						return data;
+					},
+				},
+				search: {
+					rest: "/search",
+					params: {},
+					handler: async (ctx: Context<{
+						format: string;
+						sort: string;
+						query: string;
+						fieldList: string;
+						limit: string;
+						offset: string;
+						resources: string;
+					}>) => {
+						const response = await axios.request({
+							url:
+								CV_BASE_URL +
+								"search" +
+								"?api_key=" +
+								CV_API_KEY,
+							params: ctx.params,
 							headers: { Accept: "application/json" },
 						});
 						const { data } = response;
