@@ -47,7 +47,7 @@ const brokerConfig: BrokerOptions = {
 			// Using colors on the output
 			colors: true,
 			// Print module names with different colors (like docker-compose for containers)
-			moduleColors: false,
+			moduleColors: true,
 			// Line formatter. It can be "json", "short", "simple", "full", a `Function` or a template string like "{timestamp} {level} {nodeID}/{mod}: {msg}"
 			formatter: "full",
 			// Custom object printer. If not defined, it uses the `util.inspect` method.

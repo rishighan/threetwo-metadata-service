@@ -2,12 +2,11 @@
 
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import leven from "leven";
 import { matchScorer } from "../utils/searchmatchscorer.utils";
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 const CV_API_KEY = "a5fa0663683df8145a85d694b5da4b87e1c92c69";
 
-export default class GreeterService extends Service {
+export default class ComicVineService extends Service {
 	public constructor(public broker: ServiceBroker) {
 		super(broker);
 		this.parseServiceSchema({
