@@ -1,7 +1,7 @@
 {
   "name": "comicvine-service",
-  "version": "1.0.0",
-  "description": "My Moleculer-based microservices project",
+  "version": "0.0.2",
+  "description": "A facade for ComicVine API, for use with ThreeTwo!",
   "scripts": {
     "build": "tsc --build tsconfig.json",
     "dev": "ts-node ./node_modules/moleculer/bin/moleculer-runner.js --hot --repl --config moleculer.config.ts services/**/*.service.ts",
