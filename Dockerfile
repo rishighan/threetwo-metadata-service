@@ -1,7 +1,7 @@
 FROM node:12-alpine
 
 # Working directory
-WORKDIR /app
+WORKDIR /comicvine-service
 # Install dependencies
 COPY package.json package-lock.json ./
 RUN npm ci --silent
