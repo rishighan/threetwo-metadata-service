@@ -12,4 +12,4 @@ to fetch metadata for various reasons on [ThreeTwo!](https://github.com/rishigha
 ## Docker Instructions
 
 1. Build the image using `docker build . -t frishi/threetwo-import-service`. Give it a hot minute.
-2. Run it using `docker run -it frishi/threetwo-import-service
+2. Run it using `docker run -it frishi/threetwo-import-service`
