@@ -91,9 +91,11 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 			const file = createWriteStream(`./userdata/temporary/${fileName}`);
 			const fileStream = response.pipe(file);
 			fileStream.on("finish", async () => {
+				// 1. hash of the cover image we have on hand
 				const hash1 = await imghash.hash(
-					path.resolve(rawFileDetails.path)
+					path.resolve(rawFileDetails.cover.filePath)
 				);
+				// 2. hash of the cover of the potential match
 				const hash2 = await imghash.hash(
 					path.resolve(`./userdata/temporary/${fileName}`)
 				);
