@@ -41,13 +41,22 @@ export default class ComicVineService extends Service {
 							};
 						}>
 					): Promise<any> => {
+						const { format, sort, query, fieldList, limit, offset, resources } = ctx.params;
 						const response = await axios.request({
 							url:
 								CV_BASE_URL +
 								"search" +
 								"?api_key=" +
 								CV_API_KEY,
-							params: ctx.params,
+							params: {
+								format,
+								sort,
+								query,
+								fieldList,
+								limit,
+								offset,
+								resources,
+							},
 							transformResponse: (r) => {
 								const matches = JSON.parse(r);
 								return matchScorer(
