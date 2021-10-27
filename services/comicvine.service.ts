@@ -4,7 +4,6 @@ import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import { matchScorer } from "../utils/searchmatchscorer.utils";
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
-const CV_API_KEY = "a5fa0663683df8145a85d694b5da4b87e1c92c69";
 
 export default class ComicVineService extends Service {
 	public constructor(public broker: ServiceBroker) {
@@ -47,7 +46,7 @@ export default class ComicVineService extends Service {
 								CV_BASE_URL +
 								"search" +
 								"?api_key=" +
-								CV_API_KEY,
+								process.env.COMICVINE_API_KEY,
 							params: {
 								format,
 								sort,
@@ -91,7 +90,7 @@ export default class ComicVineService extends Service {
 								CV_BASE_URL +
 								"search" +
 								"?api_key=" +
-								CV_API_KEY,
+								process.env.COMICVINE_API_KEY,
 							params: ctx.params,
 							headers: { Accept: "application/json" },
 						});
@@ -110,7 +109,7 @@ export default class ComicVineService extends Service {
 					) => {
 						const response = await axios.request({
 							url:
-								ctx.params.volumeURI + "?api_key=" + CV_API_KEY,
+								ctx.params.volumeURI + "?api_key=" + process.env.COMICVINE_API_KEY,
 							params: ctx.params.data,
 							headers: { Accept: "application/json" },
 						});
