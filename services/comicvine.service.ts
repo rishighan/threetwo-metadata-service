@@ -4,7 +4,7 @@ import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import { matchScorer } from "../utils/searchmatchscorer.utils";
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
-
+console.log("KEYYYYYYYY", process.env.COMICVINE_API_KEY);
 export default class ComicVineService extends Service {
 	public constructor(public broker: ServiceBroker) {
 		super(broker);
