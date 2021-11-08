@@ -4,8 +4,8 @@
   "description": "A facade for ComicVine API, for use with ThreeTwo!",
   "scripts": {
     "build": "tsc --build tsconfig.json",
-    "dev": "ts-node ./node_modules/moleculer/bin/moleculer-runner.js --hot --repl --config moleculer.config.ts services/**/*.service.ts",
-    "start": "moleculer-runner --config dist/moleculer.config.js dist/**/*.service.js",
+    "dev": "ts-node ./node_modules/moleculer/bin/moleculer-runner.js --envfile .env/service.env --hot --repl --config moleculer.config.ts services/**/*.service.ts",
+    "start": "moleculer-runner --envfile .env/service.env --config dist/moleculer.config.js dist/**/*.service.js",
     "cli": "moleculer connect NATS",
     "ci": "jest --watch",
     "test": "jest --coverage",
@@ -40,6 +40,7 @@
     "@types/mkdirp": "^1.0.0",
     "@types/node": "^13.9.8",
     "axios": "^0.21.1",
+    "dotenv": "^10.0.0",
     "imghash": "^0.0.9",
     "leven": "^3.1.0",
     "lodash": "^4.17.21",
