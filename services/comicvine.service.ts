@@ -2,7 +2,13 @@
 
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios, { AxiosResponse } from "axios";
+import hyperquest from "hyperquest";
+import JSONStream from "JSONStream";
+import es from "event-stream";
+
 import { matchScorer } from "../utils/searchmatchscorer.utils";
+
+
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("KEYYYYYYYY", process.env.COMICVINE_API_KEY);
 export default class ComicVineService extends Service {
@@ -65,7 +71,7 @@ export default class ComicVineService extends Service {
 								offset,
 								resources,
 							},
-							transformResponse: (r) => {
+							transformResponse: r => {
 								const matches = JSON.parse(r);
 								return matchScorer(
 									matches.results,
