@@ -1,13 +1,9 @@
 "use strict";
 
+import qs from "querystring";
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios, { AxiosResponse } from "axios";
-import hyperquest from "hyperquest";
-import JSONStream from "JSONStream";
-import es from "event-stream";
-
 import { matchScorer } from "../utils/searchmatchscorer.utils";
-
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("KEYYYYYYYY", process.env.COMICVINE_API_KEY);
@@ -16,7 +12,6 @@ export default class ComicVineService extends Service {
 		super(broker);
 		this.parseServiceSchema({
 			name: "comicvine",
-			requestTimeout: 90000,
 			actions: {
 				fetchResource: {
 					rest: "/fetchresource",
@@ -143,6 +138,7 @@ export default class ComicVineService extends Service {
 						concurrency: 10,
 						maxQueueSize: 10,
 					},
+					timeout: 10000000,
 					handler: async (
 						ctx: Context<{
 							format: string;
@@ -161,12 +157,12 @@ export default class ComicVineService extends Service {
 							};
 						}>
 					) => {
-						const fo: any = [];
-						const foo = await this.fetchVolumesFromCV(
+						const results: any = [];
+						const volumes = await this.fetchVolumesFromCV(
 							ctx.params,
-							fo
+							results,
 						);
-						return foo;
+						return volumes;
 					},
 				},
 			},
@@ -190,10 +186,10 @@ export default class ComicVineService extends Service {
 							parseInt(params.limit, 10)
 					);
 					if (currentPage < totalPages) {
-						output.push(data.results);
+						output.push(...data.results);
 						currentPage += 1;
 						params.page = currentPage;
-						console.log(currentPage);
+						console.log(`Fetching results for page ${currentPage}...`);
 						return await this.fetchVolumesFromCV(params, output);
 					} else {
 						return output;
