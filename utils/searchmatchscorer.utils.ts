@@ -37,6 +37,7 @@ import https from "https";
 import stringSimilarity from "string-similarity";
 import { isNil, map, isUndefined } from "lodash";
 import leven from "leven";
+import { isAfter, isSameYear, parseISO } from "date-fns";
 
 const imghash = require("imghash");
 
@@ -84,6 +85,38 @@ export const matchScorer = async (
 	return Promise.all(scoredMatches);
 };
 
+export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
+	// Iterate over volumes, checking to see:
+	// 1. If the detected year of the issue falls in the range (end_year >= {detected year for issue} >= start_year )
+	// 2. If there is a strong string comparison between the volume name and the issue  name ??
+	const issueNumber = parseInt(
+		scorerConfiguration.searchParams.searchTerms.number,
+		10
+	);
+	let count = 0;
+	const issueYear = parseISO(
+		scorerConfiguration.searchParams.searchTerms.year
+	);
+	volumes.map(async (volume: any, idx: number) => {
+		const volumeStartYear = parseISO(volume.start_year);
+		const firstIssueNumber = parseInt(volume.first_issue.issue_number, 10);
+		const lastIssueNumber = parseInt(volume.last_issue.issue_number, 10);
+		const issueNameMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.searchTerms.name, volume.name);
+		if (
+			(isSameYear(issueYear, volumeStartYear) ||
+				isAfter(issueYear, volumeStartYear)) &&
+			(firstIssueNumber <= issueNumber &&
+			issueNumber <= lastIssueNumber) &&
+			issueNameMatchScore > 0.5
+		) {
+			count += 1;
+			console.log("issue name match score", issueNameMatchScore);
+			console.log(volume);
+		}
+	});
+	console.log("final count ", count);
+};
+
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 	new Promise((resolve, reject) => {
 		https.get(match.image.small_url, (response: any) => {
@@ -113,7 +146,7 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 					}
 					resolve(match);
 				} else {
-					reject({ error: "bastard couldn't calculate hashes" });
+					reject({ error: "Couldn't calculate hashes." });
 				}
 			});
 		});

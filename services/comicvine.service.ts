@@ -2,8 +2,9 @@
 
 import qs from "querystring";
 import { Service, ServiceBroker, Context } from "moleculer";
-import axios, { AxiosResponse } from "axios";
-import { matchScorer } from "../utils/searchmatchscorer.utils";
+import axios from "axios";
+import { cacheAdapterEnhancer, throttleAdapterEnhancer } from "axios-extensions";
+import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("KEYYYYYYYY", process.env.COMICVINE_API_KEY);
@@ -176,7 +177,8 @@ export default class ComicVineService extends Service {
 							"?api_key=" +
 							process.env.COMICVINE_API_KEY,
 						params,
-						headers: { Accept: "application/json" },
+						headers: { Accept: "application/json"},
+						adapter: throttleAdapterEnhancer(cacheAdapterEnhancer(axios.defaults.adapter)),
 					});
 
 					const { data } = response;
@@ -187,6 +189,10 @@ export default class ComicVineService extends Service {
 					);
 					if (currentPage < totalPages) {
 						output.push(...data.results);
+
+						// 1a. Run the current batch of volumes through the matcher
+						//     Check for: issue year falling in the range of the volume run
+						rankVolumes(output, params.scorerConfiguration);
 						currentPage += 1;
 						params.page = currentPage;
 						console.log(`Fetching results for page ${currentPage}...`);
@@ -199,12 +205,4 @@ export default class ComicVineService extends Service {
 		});
 	}
 
-	// Action
-	public ActionHello(): string {
-		return "Hello Moleculer";
-	}
-
-	public ActionWelcome(name: string): string {
-		return `Welcome, ${name}`;
-	}
 }
