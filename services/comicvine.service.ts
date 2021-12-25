@@ -191,14 +191,13 @@ export default class ComicVineService extends Service {
 						output.push(...data.results);
 
 						// 1a. Run the current batch of volumes through the matcher
-						//     Check for: issue year falling in the range of the volume run
 						rankVolumes(output, params.scorerConfiguration);
 						currentPage += 1;
 						params.page = currentPage;
 						console.log(`Fetching results for page ${currentPage}...`);
 						return await this.fetchVolumesFromCV(params, output);
 					} else {
-						return output;
+						return { ...output };
 					}
 				},
 			},

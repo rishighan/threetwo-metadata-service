@@ -93,28 +93,39 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		scorerConfiguration.searchParams.searchTerms.number,
 		10
 	);
-	let count = 0;
 	const issueYear = parseISO(
 		scorerConfiguration.searchParams.searchTerms.year
 	);
 	volumes.map(async (volume: any, idx: number) => {
-		const volumeStartYear = parseISO(volume.start_year);
-		const firstIssueNumber = parseInt(volume.first_issue.issue_number, 10);
-		const lastIssueNumber = parseInt(volume.last_issue.issue_number, 10);
-		const issueNameMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.searchTerms.name, volume.name);
+		const volumeStartYear = !isNil(volume.start_year)
+			? parseISO(volume.start_year)
+			: null;
+		const firstIssueNumber = !isNil(volume.first_issue)
+			? parseInt(volume.first_issue.issue_number, 10)
+			: null;
+		const lastIssueNumber = !isNil(volume.last_issue)
+			? parseInt(volume.last_issue.issue_number, 10)
+			: null;
+		const issueNameMatchScore = stringSimilarity.compareTwoStrings(
+			scorerConfiguration.searchParams.searchTerms.name,
+			volume.name
+		);
 		if (
+			!isNil(volumeStartYear) &&
+			!isNil(firstIssueNumber) &&
+			!isNil(lastIssueNumber) &&
+			!isNil(issueNameMatchScore) &&
 			(isSameYear(issueYear, volumeStartYear) ||
 				isAfter(issueYear, volumeStartYear)) &&
-			(firstIssueNumber <= issueNumber &&
-			issueNumber <= lastIssueNumber) &&
+			firstIssueNumber <= issueNumber &&
+			issueNumber <= lastIssueNumber &&
 			issueNameMatchScore > 0.5
 		) {
-			count += 1;
 			console.log("issue name match score", issueNameMatchScore);
 			console.log(volume);
 		}
 	});
-	console.log("final count ", count);
+	return volumes;
 };
 
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
