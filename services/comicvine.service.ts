@@ -1,9 +1,13 @@
 "use strict";
 
 import qs from "querystring";
+import https from "https";
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import { cacheAdapterEnhancer, throttleAdapterEnhancer } from "axios-extensions";
+import {
+	cacheAdapterEnhancer,
+	throttleAdapterEnhancer,
+} from "axios-extensions";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
@@ -163,7 +167,10 @@ export default class ComicVineService extends Service {
 							ctx.params,
 							results,
 						);
-						return volumes;
+						console.log("total volumes", volumes.length);
+						// 1a. Run the current batch of volumes through the matcher
+						//     Check for: issue year falling in the range of the volume run
+						return rankVolumes(volumes, ctx.params.scorerConfiguration);
 					},
 				},
 			},
@@ -171,14 +178,10 @@ export default class ComicVineService extends Service {
 				fetchVolumesFromCV: async (params, output: any[] = []) => {
 					let currentPage = parseInt(params.page, 10);
 					const response = await axios.request({
-						url:
-							CV_BASE_URL +
-							"search" +
-							"?api_key=" +
-							process.env.COMICVINE_API_KEY,
+						url: `https://comicvine.gamespot.com/api/search?api_key=${process.env.COMICVINE_API_KEY}`,
 						params,
-						headers: { Accept: "application/json"},
-						adapter: throttleAdapterEnhancer(cacheAdapterEnhancer(axios.defaults.adapter)),
+						headers: {"User-Agent": "ThreeTwo"},
+
 					});
 
 					const { data } = response;
@@ -187,21 +190,21 @@ export default class ComicVineService extends Service {
 						parseInt(data.number_of_total_results, 10) /
 							parseInt(params.limit, 10)
 					);
+					if(parseInt(data.number_of_total_results, 10) <= 100 ) {
+						console.log("dari")
+						return [...data.results];
+					}
 					if (currentPage < totalPages) {
 						output.push(...data.results);
-
-						// 1a. Run the current batch of volumes through the matcher
-						rankVolumes(output, params.scorerConfiguration);
 						currentPage += 1;
 						params.page = currentPage;
 						console.log(`Fetching results for page ${currentPage}...`);
 						return await this.fetchVolumesFromCV(params, output);
 					} else {
-						return { ...output };
+						return [...output];
 					}
 				},
 			},
 		});
 	}
-
 }

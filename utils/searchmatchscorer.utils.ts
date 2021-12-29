@@ -89,6 +89,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	// Iterate over volumes, checking to see:
 	// 1. If the detected year of the issue falls in the range (end_year >= {detected year for issue} >= start_year )
 	// 2. If there is a strong string comparison between the volume name and the issue  name ??
+	console.log(volumes.length);
 	const issueNumber = parseInt(
 		scorerConfiguration.searchParams.searchTerms.number,
 		10
@@ -96,7 +97,8 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	const issueYear = parseISO(
 		scorerConfiguration.searchParams.searchTerms.year
 	);
-	volumes.map(async (volume: any, idx: number) => {
+	const foo = volumes.map((volume: any, idx: number) => {
+		let volumeMatchScore = 0;
 		const volumeStartYear = !isNil(volume.start_year)
 			? parseISO(volume.start_year)
 			: null;
@@ -110,22 +112,23 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 			scorerConfiguration.searchParams.searchTerms.name,
 			volume.name
 		);
-		if (
-			!isNil(volumeStartYear) &&
-			!isNil(firstIssueNumber) &&
-			!isNil(lastIssueNumber) &&
-			!isNil(issueNameMatchScore) &&
-			(isSameYear(issueYear, volumeStartYear) ||
-				isAfter(issueYear, volumeStartYear)) &&
-			firstIssueNumber <= issueNumber &&
-			issueNumber <= lastIssueNumber &&
-			issueNameMatchScore > 0.5
-		) {
-			console.log("issue name match score", issueNameMatchScore);
-			console.log(volume);
+		if (!isNil(volumeStartYear)) {
+			if (isSameYear(issueYear, volumeStartYear) ||
+				isAfter(issueYear, volumeStartYear)) {
+					volumeMatchScore += 2;
+				}
+		}
+		if(!isNil(firstIssueNumber) && !isNil(lastIssueNumber)) {
+			if(firstIssueNumber <= issueNumber || issueNumber <= lastIssueNumber) {
+				volumeMatchScore += 3;
+			} 
+		}
+		if(issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
+		console.log("VOLUME SCORE: ", volumeMatchScore);
+		return volume;
 		}
 	});
-	return volumes;
+	return foo.filter((item: any) => !isNil(item));
 };
 
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
