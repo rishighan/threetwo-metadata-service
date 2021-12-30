@@ -154,12 +154,15 @@ export default class ComicVineService extends Service {
 							offset: number;
 							resources: string;
 							scorerConfiguration?: {
-								searchQuery: {
-									issue: object;
-									series: object;
+								searchParams: {
+									searchTerms: {
+										name: string;
+										number: string;
+										year: string;
+									};
 								};
-								rawFileDetails: object;
 							};
+							rawFileDetails: object;
 						}>
 					) => {
 						const results: any = [];
@@ -167,10 +170,39 @@ export default class ComicVineService extends Service {
 							ctx.params,
 							results,
 						);
-						console.log("total volumes", volumes.length);
-						// 1a. Run the current batch of volumes through the matcher
-						//     Check for: issue year falling in the range of the volume run
-						return rankVolumes(volumes, ctx.params.scorerConfiguration);
+						// 1. Run the current batch of volumes through the matcher
+						const potentialVolumeMatches = rankVolumes(volumes, ctx.params.scorerConfiguration);
+						// 2. Construct the filter string
+						// 2a. volume: 1111|2222|3333
+						let volumeIdString = "volume:";
+						potentialVolumeMatches.map((volumeId: string, idx: number) => {
+							if(idx >= potentialVolumeMatches.length - 1) {
+								volumeIdString += `${volumeId}`;
+								return volumeIdString;
+							}
+							volumeIdString += `${volumeId}|`;
+						});
+						const issueYear = parseInt(ctx.params.scorerConfiguration.searchParams.searchTerms.year, 10);
+						// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
+						const coverDateFilter = `cover_date:${issueYear - 1}-01-01|${issueYear + 1}-12-31`;
+						const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.searchTerms.number},${volumeIdString},${coverDateFilter}`;
+						console.log(filterString);
+
+						const foo = await axios({
+							url: `https://comicvine.gamespot.com/api/issues?api_key=${process.env.COMICVINE_API_KEY}`,
+							params: {
+								resources: "issues",
+								limit: "100",
+								format: "json",
+								filter: filterString,
+								query: ctx.params.scorerConfiguration.searchParams.searchTerms.name,
+							},
+							headers: {"User-Agent": "ThreeTwo"},
+						});
+						console.log(foo.data);
+						return foo.data;
+
+
 					},
 				},
 			},
@@ -191,7 +223,6 @@ export default class ComicVineService extends Service {
 							parseInt(params.limit, 10)
 					);
 					if(parseInt(data.number_of_total_results, 10) <= 100 ) {
-						console.log("dari")
 						return [...data.results];
 					}
 					if (currentPage < totalPages) {

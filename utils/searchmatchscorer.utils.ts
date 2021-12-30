@@ -112,20 +112,22 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 			scorerConfiguration.searchParams.searchTerms.name,
 			volume.name
 		);
+		// 1. If issue year starts after the candidate volume's start year or is the same year, +2 to volumeMatchScore
 		if (!isNil(volumeStartYear)) {
 			if (isSameYear(issueYear, volumeStartYear) ||
 				isAfter(issueYear, volumeStartYear)) {
 					volumeMatchScore += 2;
 				}
 		}
+		// 2. If issue number falls in the range of candidate volume's first issue # and last issue #, +3 to volumeMatchScore
 		if(!isNil(firstIssueNumber) && !isNil(lastIssueNumber)) {
 			if(firstIssueNumber <= issueNumber || issueNumber <= lastIssueNumber) {
 				volumeMatchScore += 3;
-			} 
+			}
 		}
 		if(issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
 		console.log("VOLUME SCORE: ", volumeMatchScore);
-		return volume;
+		return volume.id;
 		}
 	});
 	return foo.filter((item: any) => !isNil(item));
