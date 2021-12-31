@@ -89,7 +89,6 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	// Iterate over volumes, checking to see:
 	// 1. If the detected year of the issue falls in the range (end_year >= {detected year for issue} >= start_year )
 	// 2. If there is a strong string comparison between the volume name and the issue  name ??
-	console.log(volumes.length);
 	const issueNumber = parseInt(
 		scorerConfiguration.searchParams.searchTerms.number,
 		10
@@ -108,25 +107,35 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		const lastIssueNumber = !isNil(volume.last_issue)
 			? parseInt(volume.last_issue.issue_number, 10)
 			: null;
-		const issueNameMatchScore = stringSimilarity.compareTwoStrings(
+		let issueNameMatchScore = stringSimilarity.compareTwoStrings(
 			scorerConfiguration.searchParams.searchTerms.name,
 			volume.name
 		);
-		// 1. If issue year starts after the candidate volume's start year or is the same year, +2 to volumeMatchScore
+		// 1. If there is a subtitle in the candidate volume's name, add it to the issueNameMatchScore
+		// If not, move on.
+		let subtitleMatchScore = 0;
+		if(!isNil(scorerConfiguration.searchParams.searchTerms.subtitle)) {
+			subtitleMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.searchTerms.subtitle, volume.name);
+			console.log(scorerConfiguration.searchParams.searchTerms.subtitle, subtitleMatchScore);
+			if(subtitleMatchScore > 0.1) {
+				issueNameMatchScore += subtitleMatchScore;
+			}
+		}
+		// 2. If issue year starts after the candidate volume's start year or is the same year, +2 to volumeMatchScore
 		if (!isNil(volumeStartYear)) {
 			if (isSameYear(issueYear, volumeStartYear) ||
 				isAfter(issueYear, volumeStartYear)) {
 					volumeMatchScore += 2;
 				}
 		}
-		// 2. If issue number falls in the range of candidate volume's first issue # and last issue #, +3 to volumeMatchScore
+		// 3. If issue number falls in the range of candidate volume's first issue # and last issue #, +3 to volumeMatchScore
 		if(!isNil(firstIssueNumber) && !isNil(lastIssueNumber)) {
 			if(firstIssueNumber <= issueNumber || issueNumber <= lastIssueNumber) {
 				volumeMatchScore += 3;
 			}
 		}
 		if(issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
-		console.log("VOLUME SCORE: ", volumeMatchScore);
+		console.log("VOLUME SCORE: ", issueNameMatchScore);
 		return volume.id;
 		}
 	});

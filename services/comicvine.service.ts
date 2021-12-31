@@ -9,6 +9,7 @@ import {
 	throttleAdapterEnhancer,
 } from "axios-extensions";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
+import { isNil } from "lodash";
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("KEYYYYYYYY", process.env.COMICVINE_API_KEY);
@@ -157,6 +158,7 @@ export default class ComicVineService extends Service {
 								searchParams: {
 									searchTerms: {
 										name: string;
+										subtitle?: string;
 										number: string;
 										year: string;
 									};
@@ -165,7 +167,9 @@ export default class ComicVineService extends Service {
 							rawFileDetails: object;
 						}>
 					) => {
+						console.log("scorer", ctx.params.scorerConfiguration);
 						const results: any = [];
+						let subtitleFilter = "";
 						const volumes = await this.fetchVolumesFromCV(
 							ctx.params,
 							results,
@@ -182,8 +186,11 @@ export default class ComicVineService extends Service {
 							}
 							volumeIdString += `${volumeId}|`;
 						});
-						const issueYear = parseInt(ctx.params.scorerConfiguration.searchParams.searchTerms.year, 10);
+						if(!isNil(ctx.params.scorerConfiguration.searchParams.searchTerms.subtitle)) {
+							subtitleFilter = `name:${ctx.params.scorerConfiguration.searchParams.searchTerms.subtitle}`;
+						}
 						// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
+						const issueYear = parseInt(ctx.params.scorerConfiguration.searchParams.searchTerms.year, 10);
 						const coverDateFilter = `cover_date:${issueYear - 1}-01-01|${issueYear + 1}-12-31`;
 						const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.searchTerms.number},${volumeIdString},${coverDateFilter}`;
 						console.log(filterString);
