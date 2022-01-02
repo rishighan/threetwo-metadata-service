@@ -116,7 +116,6 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		let subtitleMatchScore = 0;
 		if(!isNil(scorerConfiguration.searchParams.searchTerms.subtitle)) {
 			subtitleMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.searchTerms.subtitle, volume.name);
-			console.log(scorerConfiguration.searchParams.searchTerms.subtitle, subtitleMatchScore);
 			if(subtitleMatchScore > 0.1) {
 				issueNameMatchScore += subtitleMatchScore;
 			}
@@ -134,9 +133,9 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 				volumeMatchScore += 3;
 			}
 		}
-		if(issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
-		console.log("VOLUME SCORE: ", issueNameMatchScore);
-		return volume.id;
+		if(issueNameMatchScore > 0.2 && volumeMatchScore > 2) {
+			console.log(`Found a match for criteria, volume ID: ${volume.id}`);
+			return volume.id;
 		}
 	});
 	return foo.filter((item: any) => !isNil(item));
