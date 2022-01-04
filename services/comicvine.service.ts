@@ -1,92 +1,17 @@
 "use strict";
 
-import qs from "querystring";
-import https from "https";
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import {
-	cacheAdapterEnhancer,
-	throttleAdapterEnhancer,
-} from "axios-extensions";
-import { isNil } from "lodash";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
-console.log("KEYYYYYYYY", process.env.COMICVINE_API_KEY);
+console.log("ComicVine API Key: ", process.env.COMICVINE_API_KEY);
 export default class ComicVineService extends Service {
 	public constructor(public broker: ServiceBroker) {
 		super(broker);
 		this.parseServiceSchema({
 			name: "comicvine",
 			actions: {
-				fetchResource: {
-					rest: "/fetchresource",
-					params: {
-						format: { type: "string", optional: false },
-						sort: { type: "string", optional: true },
-						query: { type: "string", optional: false },
-						fieldList: { type: "string", optional: true },
-						limit: { type: "string", optional: false },
-						offset: { type: "string", optional: false },
-						resources: { type: "string", optional: false },
-					},
-					handler: async (
-						ctx: Context<{
-							format: string;
-							sort: string;
-							query: string;
-							fieldList: string;
-							limit: string;
-							offset: string;
-							resources: string;
-							scorerConfiguration: {
-								searchQuery: {
-									issue: object;
-									series: object;
-								};
-								rawFileDetails: object;
-							};
-						}>
-					): Promise<any> => {
-						const {
-							format,
-							sort,
-							query,
-							fieldList,
-							limit,
-							offset,
-							resources,
-						} = ctx.params;
-						const response = await axios.request({
-							url:
-								CV_BASE_URL +
-								"search" +
-								"?api_key=" +
-								process.env.COMICVINE_API_KEY,
-							params: {
-								format,
-								sort,
-								query,
-								fieldList,
-								limit,
-								offset,
-								resources,
-							},
-							transformResponse: r => {
-								const matches = JSON.parse(r);
-								return matchScorer(
-									matches.results,
-									ctx.params.scorerConfiguration.searchQuery,
-									ctx.params.scorerConfiguration
-										.rawFileDetails
-								);
-							},
-							headers: { Accept: "application/json" },
-						});
-						const { data } = response;
-						return data;
-					},
-				},
 				search: {
 					rest: "/search",
 					params: {},
@@ -205,7 +130,7 @@ export default class ComicVineService extends Service {
 							},
 							headers: {"User-Agent": "ThreeTwo"},
 						});
-						console.log("YAHAHAHA", issueMatches.data.results.length);
+						console.log(`Total issues matching the criteria: ${issueMatches.data.results.length}`);
 						// 3. get volume information for the issue matches
 						if(issueMatches.data.results.length === 1) {
 							const volumeInformation = await this.broker.call("comicvine.getVolumes", { volumeURI: issueMatches.data.results[0].volume.api_detail_url });
@@ -234,20 +159,21 @@ export default class ComicVineService extends Service {
 					});
 
 					const { data } = response;
-					// 1. calculate total pages
+					// 1. Calculate total pages
 					const totalPages = Math.floor(
 						parseInt(data.number_of_total_results, 10) /
 							parseInt(params.limit, 10)
 					);
-					console.log(totalPages);
+					// 1a. If total results are <= 100, just return the results
 					if(parseInt(data.number_of_total_results, 10) <= 100 ) {
 						return [...data.results];
 					}
+					// 1b. If not, recursively call fetchVolumesFromCV till we have fetched all pages
 					if (currentPage <= totalPages) {
 						output.push(...data.results);
 						currentPage += 1;
 						params.page = currentPage;
-						console.log(`Fetching results for page ${currentPage}...`);
+						console.log(`Fetching results for page ${currentPage} (of ${totalPages + 1})...`);
 						return await this.fetchVolumesFromCV(params, output);
 					} else {
 						return [...output];

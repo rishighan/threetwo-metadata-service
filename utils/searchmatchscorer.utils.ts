@@ -133,7 +133,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 				volumeMatchScore += 3;
 			}
 		}
-		if(issueNameMatchScore > 0.2 && volumeMatchScore > 2) {
+		if(issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
 			console.log(`Found a match for criteria, volume ID: ${volume.id}`);
 			return volume.id;
 		}
