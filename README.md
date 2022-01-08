@@ -1,6 +1,6 @@
 # comicvine-service
 
-This [moleculer-based](https://github.com/moleculerjs/moleculer-web) microservice houses [comicvine](http://comicvine.gamespot.com) related endpoints that are used 
+This [moleculer-based](https://github.com/moleculerjs/moleculer-web) microservice houses [comicvine](http://comicvine.gamespot.com) and Metron related endpoints that are used 
 to fetch metadata for various reasons on [ThreeTwo!](https://github.com/rishighan/threetwo)
 
 ## Local Development
