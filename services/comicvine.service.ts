@@ -3,6 +3,7 @@
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
+import { isNil } from "lodash";
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("ComicVine API Key: ", process.env.COMICVINE_API_KEY);
@@ -115,8 +116,11 @@ export default class ComicVineService extends Service {
 						});
 
 						// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
-						const issueYear = parseInt(ctx.params.scorerConfiguration.searchParams.searchTerms.year, 10);
-						const coverDateFilter = `cover_date:${issueYear - 1}-01-01|${issueYear + 1}-12-31`;
+						let coverDateFilter = "";
+						if(!isNil(ctx.params.scorerConfiguration.searchParams.searchTerms.year)) {
+							const issueYear = parseInt(ctx.params.scorerConfiguration.searchParams.searchTerms.year, 10);
+							coverDateFilter = `cover_date:${issueYear - 1}-01-01|${issueYear + 1}-12-31`;
+						}
 						const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.searchTerms.number},${volumeIdString},${coverDateFilter}`;
 						console.log(filterString);
 
