@@ -63,39 +63,6 @@ export default class ComicVineService extends Service {
 						return data;
 					},
 				},
-				getIssuesForVolume: {
-					rest: "POST /getIssuesForVolume",
-					params: {},
-					handler: async (
-						ctx: Context<{ comicObjectID: string }>
-					) => {
-						try {
-							const issues: any = [];
-							const comicBookDetails: any = await ctx.broker.call(
-								"import.getComicBookById",
-								{ id: ctx.params.comicObjectID }
-							);
-							if (!isUndefined(comicBookDetails)) {
-								const foo = comicBookDetails.sourcedMetadata.comicvine.volumeInformation.issues.map(
-									async (issue: any, idx: any) => {
-										const issueMetadata = await axios({
-											url: `${issue.api_detail_url}?api_key=${process.env.COMICVINE_API_KEY}`,
-											params: {
-												resources: "issues",
-												limit: "100",
-												format: "json",
-											},
-										});
-									 return	issueMetadata.data.results;
-									}
-								);
-								return Promise.all(foo);
-							}
-						} catch (error) {
-							throw error;
-						}
-					},
-				},
 				volumeBasedSearch: {
 					rest: "POST /volumeBasedSearch",
 					params: {},
