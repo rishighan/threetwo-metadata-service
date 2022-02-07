@@ -2,6 +2,7 @@
 
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
+import delay from "delay";
 import { isNil, isUndefined } from "lodash";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 
@@ -63,6 +64,43 @@ export default class ComicVineService extends Service {
 						return data;
 					},
 				},
+				getIssuesForSeries: {
+					rest: "POST /getIssuesForSeries",
+					params: {},
+					handler: async (
+						ctx: Context<{ comicObjectID: string }>
+					) => {
+						// 1. Query mongo to get the comic document by its _id
+						const comicBookDetails: any = await this.broker.call(
+							"library.getComicBookById",
+							{ id: ctx.params.comicObjectID }
+						);
+
+						// 2. Query CV and get metadata for them
+						const issuesPromises = await comicBookDetails.sourcedMetadata.comicvine.volumeInformation.issues.map(
+							async (issue: any, idx: any) => {
+								await delay(1000);
+								const metadata: any = await axios.request({
+									url: `${issue.api_detail_url}?api_key=${process.env.COMICVINE_API_KEY}`,
+									params: {
+										resources: "issues",
+										limit: "100",
+										format: "json",
+									},
+									headers: {
+										"User-Agent": "ThreeTwo",
+									},
+								});
+								const issueMetadata = metadata.data.results;
+
+								// 3. Just return the issues
+								return issueMetadata;
+							}
+						);
+
+						return Promise.all(issuesPromises);
+					},
+				},
 				volumeBasedSearch: {
 					rest: "POST /volumeBasedSearch",
 					params: {},
@@ -84,13 +122,13 @@ export default class ComicVineService extends Service {
 							resources: string;
 							scorerConfiguration?: {
 								searchParams: {
-									searchTerms: {
 										name: string;
 										subtitle?: string;
 										number: string;
 										year: string;
 									};
-								};
+
+
 							};
 							rawFileDetails: object;
 						}>
@@ -98,7 +136,6 @@ export default class ComicVineService extends Service {
 						console.log(
 							"Searching against: ",
 							ctx.params.scorerConfiguration.searchParams
-								.searchTerms
 						);
 						const results: any = [];
 						const volumes = await this.fetchVolumesFromCV(
@@ -128,20 +165,18 @@ export default class ComicVineService extends Service {
 						let coverDateFilter = "";
 						if (
 							!isNil(
-								ctx.params.scorerConfiguration.searchParams
-									.searchTerms.year
+								ctx.params.scorerConfiguration.searchParams.year
 							)
 						) {
 							const issueYear = parseInt(
-								ctx.params.scorerConfiguration.searchParams
-									.searchTerms.year,
+								ctx.params.scorerConfiguration.searchParams.year,
 								10
 							);
 							coverDateFilter = `cover_date:${
 								issueYear - 1
 							}-01-01|${issueYear + 1}-12-31`;
 						}
-						const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.searchTerms.number},${volumeIdString},${coverDateFilter}`;
+						const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.number},${volumeIdString},${coverDateFilter}`;
 						console.log(filterString);
 
 						const issueMatches = await axios({

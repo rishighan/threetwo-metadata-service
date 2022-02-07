@@ -90,11 +90,11 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	// 1. If the detected year of the issue falls in the range (end_year >= {detected year for issue} >= start_year )
 	// 2. If there is a strong string comparison between the volume name and the issue  name ??
 	const issueNumber = parseInt(
-		scorerConfiguration.searchParams.searchTerms.number,
+		scorerConfiguration.searchParams.number,
 		10
 	);
 	const issueYear = parseISO(
-		scorerConfiguration.searchParams.searchTerms.year
+		scorerConfiguration.searchParams.year
 	);
 	const foo = volumes.map((volume: any, idx: number) => {
 		let volumeMatchScore = 0;
@@ -108,14 +108,14 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 			? parseInt(volume.last_issue.issue_number, 10)
 			: null;
 		let issueNameMatchScore = stringSimilarity.compareTwoStrings(
-			scorerConfiguration.searchParams.searchTerms.name,
+			scorerConfiguration.searchParams.name,
 			volume.name
 		);
 		// 1. If there is a subtitle in the candidate volume's name, add it to the issueNameMatchScore
 		// If not, move on.
 		let subtitleMatchScore = 0;
-		if(!isNil(scorerConfiguration.searchParams.searchTerms.subtitle)) {
-			subtitleMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.searchTerms.subtitle, volume.name);
+		if(!isNil(scorerConfiguration.searchParams.subtitle)) {
+			subtitleMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.subtitle, volume.name);
 			if(subtitleMatchScore > 0.1) {
 				issueNameMatchScore += subtitleMatchScore;
 			}
