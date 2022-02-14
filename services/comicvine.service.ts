@@ -4,6 +4,7 @@ import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import delay from "delay";
 import { isNil, isUndefined } from "lodash";
+
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
@@ -77,28 +78,58 @@ export default class ComicVineService extends Service {
 						);
 
 						// 2. Query CV and get metadata for them
-						const issuesPromises = await comicBookDetails.sourcedMetadata.comicvine.volumeInformation.issues.map(
-							async (issue: any, idx: any) => {
-								await delay(1000);
-								const metadata: any = await axios.request({
-									url: `${issue.api_detail_url}?api_key=${process.env.COMICVINE_API_KEY}`,
-									params: {
-										resources: "issues",
-										limit: "100",
-										format: "json",
-									},
-									headers: {
-										"User-Agent": "ThreeTwo",
-									},
-								});
-								const issueMetadata = metadata.data.results;
+						const issuesPromises =
+							await comicBookDetails.sourcedMetadata.comicvine.volumeInformation.issues.map(
+								async (issue: any, idx: any) => {
+									await delay(1000);
+									const metadata: any = await axios.request({
+										url: `${issue.api_detail_url}?api_key=${process.env.COMICVINE_API_KEY}`,
+										params: {
+											resources: "issues",
+											limit: "100",
+											format: "json",
+										},
+										headers: {
+											"User-Agent": "ThreeTwo",
+										},
+									});
+									const issueMetadata = metadata.data.results;
 
-								// 3. Just return the issues
-								return issueMetadata;
-							}
-						);
+									// 3. Just return the issues
+									return issueMetadata;
+								}
+							);
 
 						return Promise.all(issuesPromises);
+					},
+				},
+				getWeeklyPullList: {
+					rest: "GET /getWeeklyPullList",
+					params: {},
+					timeout: 10000000,
+					handler: async (
+						ctx: Context<{
+							startDate: string;
+							endDate: string;
+						}>
+					) => {
+						const dateFilter = `store_date: ${ctx.params.startDate} | ${ctx.params.endDate}`;
+						console.log(dateFilter);
+
+						// Get issues for that date
+						const result = await axios({
+							url: `https://comicvine.gamespot.com/api/issues?api_key=${process.env.COMICVINE_API_KEY}`,
+							method: "get",
+							params: {
+								resources: "issues",
+								limit: "5",
+								format: "json",
+								filter: dateFilter,
+							},
+							headers: { "User-Agent": "ThreeTwo" },
+						});
+
+						return result.data;
 					},
 				},
 				volumeBasedSearch: {
@@ -122,13 +153,11 @@ export default class ComicVineService extends Service {
 							resources: string;
 							scorerConfiguration?: {
 								searchParams: {
-										name: string;
-										subtitle?: string;
-										number: string;
-										year: string;
-									};
-
-
+									name: string;
+									subtitle?: string;
+									number: string;
+									year: string;
+								};
 							};
 							rawFileDetails: object;
 						}>
@@ -169,7 +198,8 @@ export default class ComicVineService extends Service {
 							)
 						) {
 							const issueYear = parseInt(
-								ctx.params.scorerConfiguration.searchParams.year,
+								ctx.params.scorerConfiguration.searchParams
+									.year,
 								10
 							);
 							coverDateFilter = `cover_date:${
