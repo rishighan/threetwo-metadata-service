@@ -4,8 +4,10 @@ import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import delay from "delay";
 import { isNil, isUndefined } from "lodash";
-
+import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
+import { scrapeIssuesFromSeriesPage } from "../utils/scraping.utils";
+const { calculateLimitAndOffset, paginate } = require("paginate-info");
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("ComicVine API Key: ", process.env.COMICVINE_API_KEY);
@@ -103,6 +105,13 @@ export default class ComicVineService extends Service {
 						return Promise.all(issuesPromises);
 					},
 				},
+				scrapeLOCGForSeries: {
+					rest: "POST/scrapeLOCGForSeries",
+					params: {},
+					handler: async (ctx: Context<{}>) => {
+						return await scrapeIssuesFromSeriesPage("https://leagueofcomicgeeks.com/comics/series/151629/king-spawn");
+					},
+				},
 				getWeeklyPullList: {
 					rest: "GET /getWeeklyPullList",
 					params: {},
@@ -110,26 +119,40 @@ export default class ComicVineService extends Service {
 					handler: async (
 						ctx: Context<{
 							startDate: string;
-							endDate: string;
+							currentPage: string;
+							pageSize: string;
 						}>
 					) => {
-						const dateFilter = `store_date: ${ctx.params.startDate} | ${ctx.params.endDate}`;
-						console.log(dateFilter);
+						const { currentPage, pageSize } = ctx.params;
+						const { limit, offset } = calculateLimitAndOffset(
+							currentPage,
+							pageSize
+						);
 
-						// Get issues for that date
-						const result = await axios({
-							url: `https://comicvine.gamespot.com/api/issues?api_key=${process.env.COMICVINE_API_KEY}`,
-							method: "get",
-							params: {
-								resources: "issues",
-								limit: "5",
-								format: "json",
-								filter: dateFilter,
-							},
-							headers: { "User-Agent": "ThreeTwo" },
-						});
+						const response = await fetchReleases(
+							new Date(ctx.params.startDate),
+							{
+								publishers: ["DC Comics", "Marvel Comics", "Image Comics"],
+								filter: [
+									FilterTypes.Regular,
+									FilterTypes.Digital,
+									FilterTypes.Annual,
+								],
+								sort: SortTypes.AlphaAsc,
+							}
+						);
 
-						return result.data;
+						const count = response.length;
+						const paginatedData = response.slice(
+							offset,
+							offset + limit
+						);
+						const paginationInfo = paginate(
+							currentPage,
+							count,
+							paginatedData
+						);
+						return { result: paginatedData, meta: paginationInfo };
 					},
 				},
 				volumeBasedSearch: {
