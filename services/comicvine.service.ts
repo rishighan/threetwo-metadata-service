@@ -6,7 +6,10 @@ import delay from "delay";
 import { isNil, isUndefined } from "lodash";
 import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
-import { scrapeIssuesFromSeriesPage } from "../utils/scraping.utils";
+import {
+	scrapeIssuesFromSeriesPage,
+	scrapeIssuePage,
+} from "../utils/scraping.utils";
 const { calculateLimitAndOffset, paginate } = require("paginate-info");
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
@@ -106,10 +109,15 @@ export default class ComicVineService extends Service {
 					},
 				},
 				scrapeLOCGForSeries: {
-					rest: "POST/scrapeLOCGForSeries",
+					rest: "POST /scrapeLOCGForSeries",
 					params: {},
 					handler: async (ctx: Context<{}>) => {
-						return await scrapeIssuesFromSeriesPage("https://leagueofcomicgeeks.com/comics/series/151629/king-spawn");
+						const seriesURIFragment = await scrapeIssuePage(
+							"https://leagueofcomicgeeks.com/comic/5878833/hulk-4"
+						);
+						return await scrapeIssuesFromSeriesPage(
+							`https://leagueofcomicgeeks.com/${seriesURIFragment}`
+						);
 					},
 				},
 				getWeeklyPullList: {
@@ -132,7 +140,11 @@ export default class ComicVineService extends Service {
 						const response = await fetchReleases(
 							new Date(ctx.params.startDate),
 							{
-								publishers: ["DC Comics", "Marvel Comics", "Image Comics"],
+								publishers: [
+									"DC Comics",
+									"Marvel Comics",
+									"Image Comics",
+								],
 								filter: [
 									FilterTypes.Regular,
 									FilterTypes.Digital,

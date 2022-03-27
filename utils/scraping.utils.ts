@@ -41,3 +41,17 @@ export const scrapeIssuesFromSeriesPage = async (url: string) => {
 		issues,
 	};
 };
+
+export const scrapeIssuePage = async (url: string) => {
+    const response = await axios(url);
+    const dom = new JSDOM(response.data, {
+		url,
+		referrer: url,
+		contentType: "text/html",
+		includeNodeLocations: true,
+		storageQuota: 10000000,
+	});
+    const seriesDOMElement = dom.window.document
+		.querySelector("div.series-pagination > a.series").getAttribute("href");
+    return seriesDOMElement;
+};
