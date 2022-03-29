@@ -1,7 +1,8 @@
 FROM node:12-alpine
+LABEL maintainer="Rishi Ghan <rishi.ghan@gmail.com>"
 
 # Working directory
-WORKDIR /comicvine-service
+WORKDIR /metadata-service
 # Install dependencies
 COPY package.json package-lock.json ./
 RUN npm ci --silent
