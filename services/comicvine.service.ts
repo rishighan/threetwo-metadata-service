@@ -290,10 +290,10 @@ export default class ComicVineService extends Service {
 						url: `https://comicvine.gamespot.com/api/search?api_key=${process.env.COMICVINE_API_KEY}`,
 						method: "GET",
 						params,
-						headers: {
-							"User-Agent": "ThreeTwo",
-							"Accept": "application/json",
-						},
+						// headers: {
+						// 	"User-Agent": "ThreeTwo",
+						// 	"Accept": "application/json",
+						// },
 					});
 
 					const { data } = response;
