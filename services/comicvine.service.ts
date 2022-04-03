@@ -247,10 +247,10 @@ export default class ComicVineService extends Service {
 								format: "json",
 								filter: filterString,
 							},
-							headers: {
-								"User-Agent": "ThreeTwo",
-								"Accept": "application/json",
-							},
+							// headers: {
+							// 	"User-Agent": "ThreeTwo",
+							// 	"Accept": "application/json",
+							// },
 						});
 						console.log(
 							`Total issues matching the criteria: ${issueMatches.data.results.length}`
