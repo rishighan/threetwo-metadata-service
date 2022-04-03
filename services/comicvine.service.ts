@@ -170,12 +170,6 @@ export default class ComicVineService extends Service {
 				volumeBasedSearch: {
 					rest: "POST /volumeBasedSearch",
 					params: {},
-					headers: { Accept: "application/json" },
-					bulkhead: {
-						enabled: true,
-						concurrency: 10,
-						maxQueueSize: 10,
-					},
 					timeout: 10000000,
 					handler: async (
 						ctx: Context<{
@@ -246,13 +240,17 @@ export default class ComicVineService extends Service {
 
 						const issueMatches = await axios({
 							url: `https://comicvine.gamespot.com/api/issues?api_key=${process.env.COMICVINE_API_KEY}`,
+							method: "GET",
 							params: {
 								resources: "issues",
 								limit: "100",
 								format: "json",
 								filter: filterString,
 							},
-							headers: { "User-Agent": "ThreeTwo" },
+							headers: {
+								"User-Agent": "ThreeTwo",
+								"Accept": "application/json",
+							},
 						});
 						console.log(
 							`Total issues matching the criteria: ${issueMatches.data.results.length}`
@@ -290,8 +288,12 @@ export default class ComicVineService extends Service {
 					let currentPage = parseInt(params.page, 10);
 					const response = await axios.request({
 						url: `https://comicvine.gamespot.com/api/search?api_key=${process.env.COMICVINE_API_KEY}`,
+						method: "GET",
 						params,
-						headers: { "User-Agent": "ThreeTwo" },
+						headers: {
+							"User-Agent": "ThreeTwo",
+							"Accept": "application/json",
+						},
 					});
 
 					const { data } = response;
