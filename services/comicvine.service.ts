@@ -256,7 +256,8 @@ export default class ComicVineService extends Service {
 									filter: filterString,
 								},
 								headers: {
-									Accept: "application/json",
+									"Accept": "application/json",
+									"User-Agent": "ThreeTwo",
 								},
 							});
 							console.log(
@@ -309,7 +310,8 @@ export default class ComicVineService extends Service {
 							process.env.COMICVINE_API_KEY,
 						params,
 						headers: {
-							Accept: "application/json",
+							"Accept": "application/json",
+							"User-Agent": "ThreeTwo",
 						},
 					});
 
