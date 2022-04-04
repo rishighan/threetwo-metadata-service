@@ -197,6 +197,10 @@ export default class ComicVineService extends Service {
 								ctx.params.scorerConfiguration.searchParams
 							);
 							const results: any = [];
+							console.log(
+								"passed to fetchvolumesfromcv",
+								ctx.params
+							);
 							const volumes = await this.fetchVolumesFromCV(
 								ctx.params,
 								results
@@ -300,15 +304,22 @@ export default class ComicVineService extends Service {
 				},
 			},
 			methods: {
-				fetchVolumesFromCV: async (params, output: any[] = []) => {
-					let currentPage = parseInt(params.page, 10);
+				fetchVolumesFromCV: async (payload, output: any[] = []) => {
+					const { format, query, limit, page, resources } = payload;
+					let currentPage = parseInt(page, 10);
 					const response = await axios.request({
 						url:
 							CV_BASE_URL +
 							"search" +
 							"?api_key=" +
 							process.env.COMICVINE_API_KEY,
-						params,
+						params: {
+							format,
+							query,
+							limit,
+							page,
+							resources,
+						},
 						headers: {
 							"Accept": "application/json",
 							"User-Agent": "ThreeTwo",
@@ -319,7 +330,7 @@ export default class ComicVineService extends Service {
 					// 1. Calculate total pages
 					const totalPages = Math.floor(
 						parseInt(data.number_of_total_results, 10) /
-							parseInt(params.limit, 10)
+							parseInt(limit, 10)
 					);
 					// 1a. If total results are <= 100, just return the results
 					if (parseInt(data.number_of_total_results, 10) <= 100) {
@@ -329,13 +340,22 @@ export default class ComicVineService extends Service {
 					if (currentPage <= totalPages) {
 						output.push(...data.results);
 						currentPage += 1;
-						params.page = currentPage;
+						// Params.page = currentPage;
 						console.log(
 							`Fetching results for page ${currentPage} (of ${
 								totalPages + 1
 							})...`
 						);
-						return await this.fetchVolumesFromCV(params, output);
+						return await this.fetchVolumesFromCV(
+							{
+								format,
+								query,
+								limit,
+								page: currentPage,
+								resources,
+							},
+							output
+						);
 					} else {
 						return [...output];
 					}
