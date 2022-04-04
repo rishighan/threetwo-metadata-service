@@ -244,7 +244,11 @@ export default class ComicVineService extends Service {
 							console.log(filterString);
 
 							const issueMatches = await axios({
-								url: `${CV_BASE_URL}issues?api_key=${process.env.COMICVINE_API_KEY}`,
+								url:
+									CV_BASE_URL +
+									"issues" +
+									"?api_key=" +
+									process.env.COMICVINE_API_KEY,
 								params: {
 									resources: "issues",
 									limit: "100",
@@ -298,7 +302,11 @@ export default class ComicVineService extends Service {
 				fetchVolumesFromCV: async (params, output: any[] = []) => {
 					let currentPage = parseInt(params.page, 10);
 					const response = await axios.request({
-						url: `${CV_BASE_URL}search?api_key=${process.env.COMICVINE_API_KEY}`,
+						url:
+							CV_BASE_URL +
+							"search" +
+							"?api_key=" +
+							process.env.COMICVINE_API_KEY,
 						params,
 						headers: {
 							Accept: "application/json",
