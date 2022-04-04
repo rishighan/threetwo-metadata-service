@@ -191,95 +191,106 @@ export default class ComicVineService extends Service {
 							rawFileDetails: object;
 						}>
 					) => {
-						console.log(
-							"Searching against: ",
-							ctx.params.scorerConfiguration.searchParams
-						);
-						const results: any = [];
-						const volumes = await this.fetchVolumesFromCV(
-							ctx.params,
-							results
-						);
-						// 1. Run the current batch of volumes through the matcher
-						const potentialVolumeMatches = rankVolumes(
-							volumes,
-							ctx.params.scorerConfiguration
-						);
-
-						// 2. Construct the filter string
-						// 2a. volume: 1111|2222|3333
-						let volumeIdString = "volume:";
-						potentialVolumeMatches.map(
-							(volumeId: string, idx: number) => {
-								if (idx >= potentialVolumeMatches.length - 1) {
-									volumeIdString += `${volumeId}`;
-									return volumeIdString;
-								}
-								volumeIdString += `${volumeId}|`;
-							}
-						);
-
-						// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
-						let coverDateFilter = "";
-						if (
-							!isNil(
-								ctx.params.scorerConfiguration.searchParams.year
-							)
-						) {
-							const issueYear = parseInt(
+						try {
+							console.log(
+								"Searching against: ",
 								ctx.params.scorerConfiguration.searchParams
-									.year,
-								10
 							);
-							coverDateFilter = `cover_date:${
-								issueYear - 1
-							}-01-01|${issueYear + 1}-12-31`;
-						}
-						const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.number},${volumeIdString},${coverDateFilter}`;
-						console.log(filterString);
+							const results: any = [];
+							const volumes = await this.fetchVolumesFromCV(
+								ctx.params,
+								results
+							);
+							// 1. Run the current batch of volumes through the matcher
+							const potentialVolumeMatches = rankVolumes(
+								volumes,
+								ctx.params.scorerConfiguration
+							);
 
-						const issueMatches = await axios({
-							url: `https://comicvine.gamespot.com/api/issues?api_key=${process.env.COMICVINE_API_KEY}`,
-							method: "GET",
-							params: {
-								resources: "issues",
-								limit: "100",
-								format: "json",
-								filter: filterString,
-							},
-							// headers: {
-							// 	"User-Agent": "ThreeTwo",
-							// 	"Accept": "application/json",
-							// },
-						});
-						console.log(
-							`Total issues matching the criteria: ${issueMatches.data.results.length}`
-						);
-						// 3. get volume information for the issue matches
-						if (issueMatches.data.results.length === 1) {
-							const volumeInformation = await this.broker.call(
-								"comicvine.getVolumes",
-								{
-									volumeURI:
-										issueMatches.data.results[0].volume
-											.api_detail_url,
+							// 2. Construct the filter string
+							// 2a. volume: 1111|2222|3333
+							let volumeIdString = "volume:";
+							potentialVolumeMatches.map(
+								(volumeId: string, idx: number) => {
+									if (
+										idx >=
+										potentialVolumeMatches.length - 1
+									) {
+										volumeIdString += `${volumeId}`;
+										return volumeIdString;
+									}
+									volumeIdString += `${volumeId}|`;
 								}
 							);
-							issueMatches.data.results[0].volumeInformation =
-								volumeInformation;
-							return issueMatches.data;
-						}
-						const finalMatches = issueMatches.data.results.map(
-							async (issue: any) => {
-								const volumeDetails = await this.broker.call(
-									"comicvine.getVolumes",
-									{ volumeURI: issue.volume.api_detail_url }
+
+							// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
+							let coverDateFilter = "";
+							if (
+								!isNil(
+									ctx.params.scorerConfiguration.searchParams
+										.year
+								)
+							) {
+								const issueYear = parseInt(
+									ctx.params.scorerConfiguration.searchParams
+										.year,
+									10
 								);
-								issue.volumeInformation = volumeDetails;
-								return issue;
+								coverDateFilter = `cover_date:${
+									issueYear - 1
+								}-01-01|${issueYear + 1}-12-31`;
 							}
-						);
-						return Promise.all(finalMatches);
+							const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.number},${volumeIdString},${coverDateFilter}`;
+							console.log(filterString);
+
+							const issueMatches = await axios({
+								url: `${CV_BASE_URL}issues?api_key=${process.env.COMICVINE_API_KEY}`,
+								params: {
+									resources: "issues",
+									limit: "100",
+									format: "json",
+									filter: filterString,
+								},
+								headers: {
+									Accept: "application/json",
+								},
+							});
+							console.log(
+								`Total issues matching the criteria: ${issueMatches.data.results.length}`
+							);
+							// 3. get volume information for the issue matches
+							if (issueMatches.data.results.length === 1) {
+								const volumeInformation =
+									await this.broker.call(
+										"comicvine.getVolumes",
+										{
+											volumeURI:
+												issueMatches.data.results[0]
+													.volume.api_detail_url,
+										}
+									);
+								issueMatches.data.results[0].volumeInformation =
+									volumeInformation;
+								return issueMatches.data;
+							}
+							const finalMatches = issueMatches.data.results.map(
+								async (issue: any) => {
+									const volumeDetails =
+										await this.broker.call(
+											"comicvine.getVolumes",
+											{
+												volumeURI:
+													issue.volume.api_detail_url,
+											}
+										);
+									issue.volumeInformation = volumeDetails;
+									return issue;
+								}
+							);
+							return Promise.all(finalMatches);
+						} catch (error) {
+							console.log(error);
+						}
 					},
 				},
 			},
@@ -287,13 +298,11 @@ export default class ComicVineService extends Service {
 				fetchVolumesFromCV: async (params, output: any[] = []) => {
 					let currentPage = parseInt(params.page, 10);
 					const response = await axios.request({
-						url: `https://comicvine.gamespot.com/api/search?api_key=${process.env.COMICVINE_API_KEY}`,
-						method: "GET",
+						url: `${CV_BASE_URL}search?api_key=${process.env.COMICVINE_API_KEY}`,
 						params,
-						// headers: {
-						// 	"User-Agent": "ThreeTwo",
-						// 	"Accept": "application/json",
-						// },
+						headers: {
+							Accept: "application/json",
+						},
 					});
 
 					const { data } = response;
