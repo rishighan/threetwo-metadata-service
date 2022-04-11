@@ -81,31 +81,25 @@ export default class ComicVineService extends Service {
 							"library.getComicBookById",
 							{ id: ctx.params.comicObjectID }
 						);
-
 						// 2. Query CV and get metadata for them
-						const issuesPromises =
-							await comicBookDetails.sourcedMetadata.comicvine.volumeInformation.issues.map(
-								async (issue: any, idx: any) => {
-									await delay(1000);
-									const metadata: any = await axios.request({
-										url: `${issue.api_detail_url}?api_key=${process.env.COMICVINE_API_KEY}`,
-										params: {
-											resources: "issues",
-											limit: "100",
-											format: "json",
-										},
-										headers: {
-											"User-Agent": "ThreeTwo",
-										},
-									});
-									const issueMetadata = metadata.data.results;
-
-									// 3. Just return the issues
-									return issueMetadata;
-								}
-							);
-
-						return Promise.all(issuesPromises);
+						const issues = await axios({
+							url:
+								CV_BASE_URL +
+								"issues" +
+								"?api_key=" +
+								process.env.COMICVINE_API_KEY,
+							params: {
+								resources: "issues",
+								limit: "100",
+								format: "json",
+								filter: `volume:${comicBookDetails.sourcedMetadata.comicvine.volumeInformation.id}`,
+							},
+							headers: {
+								"Accept": "application/json",
+								"User-Agent": "ThreeTwo",
+							},
+						});
+						return issues.data;
 					},
 				},
 				scrapeLOCGForSeries: {
