@@ -95,7 +95,7 @@ export default class ComicVineService extends Service {
 								filter: `volume:${comicBookDetails.sourcedMetadata.comicvine.volumeInformation.id}`,
 							},
 							headers: {
-								"Accept": "application/json",
+								Accept: "application/json",
 								"User-Agent": "ThreeTwo",
 							},
 						});
@@ -192,7 +192,7 @@ export default class ComicVineService extends Service {
 							);
 							const results: any = [];
 							console.log(
-								"passed to fetchvolumesfromcv",
+								"passed to fetchVolumesFromCV",
 								ctx.params
 							);
 							const volumes = await this.fetchVolumesFromCV(
@@ -254,7 +254,7 @@ export default class ComicVineService extends Service {
 									filter: filterString,
 								},
 								headers: {
-									"Accept": "application/json",
+									Accept: "application/json",
 									"User-Agent": "ThreeTwo",
 								},
 							});
@@ -315,7 +315,7 @@ export default class ComicVineService extends Service {
 							resources,
 						},
 						headers: {
-							"Accept": "application/json",
+							Accept: "application/json",
 							"User-Agent": "ThreeTwo",
 						},
 					});
@@ -335,11 +335,24 @@ export default class ComicVineService extends Service {
 						output.push(...data.results);
 						currentPage += 1;
 						// Params.page = currentPage;
+
 						console.log(
 							`Fetching results for page ${currentPage} (of ${
 								totalPages + 1
 							})...`
 						);
+
+						await this.broker.call("socket.broadcast", {
+							namespace: "/",
+							event: "CV_SCRAPING_STATUS",
+							args: [
+								{
+									message: `Fetching results for page ${currentPage} (of ${
+										totalPages + 1
+									})...`,
+								},
+							],
+						});
 						return await this.fetchVolumesFromCV(
 							{
 								format,
