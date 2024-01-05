@@ -42,60 +42,57 @@ import { isAfter, isSameYear, parseISO } from "date-fns";
 const imghash = require("imghash");
 
 export const matchScorer = async (
-	searchMatches: any,
+	searchMatches: Promise<any>[],
 	searchQuery: any,
 	rawFileDetails: any
 ): Promise<any> => {
-	// 1. Check if it exists in the db (score: 0)
-	// 2. Check if issue name matches strongly (score: ++)
-	// 3. Check if issue number matches strongly (score: ++)
-	// 4. Check if issue covers hash match strongly (score: +++)
-	// 5. Check if issue year matches strongly (score: +)
-	const scoredMatches = map(searchMatches, async (match, idx) => {
-		match.score = 0;
-		// Check for the issue name match
-		if (
-			!isNil(searchQuery.issue.searchParams.searchTerms.name) &&
-			!isNil(match.name)
-		) {
-			const issueNameScore = stringSimilarity.compareTwoStrings(
-				searchQuery.issue.searchParams.searchTerms.name,
-				match.name
+	const scoredMatches: any = [];
+
+	try {
+		const matches = await Promise.all(searchMatches);
+
+		for (const match of matches) {
+			match.score = 0;
+
+			// Check for the issue name match
+			if (!isNil(searchQuery.name) && !isNil(match.name)) {
+				const issueNameScore = stringSimilarity.compareTwoStrings(
+					searchQuery.name,
+					match.name
+				);
+				match.score = issueNameScore;
+			}
+
+			// Issue number matches
+			if (!isNil(searchQuery.number) && !isNil(match.issue_number)) {
+				if (
+					parseInt(searchQuery.number, 10) ===
+					parseInt(match.issue_number, 10)
+				) {
+					match.score += 1;
+				}
+			}
+
+			// Cover image hash match
+			scoredMatches.push(
+				await calculateLevenshteinDistance(match, rawFileDetails)
 			);
-			match.score = issueNameScore;
 		}
 
-		// Issue number matches
-		if (
-			!isNil(searchQuery.issue.searchParams.searchTerms.number) &&
-			!isNil(match.issue_number)
-		) {
-			if (
-				parseInt(
-					searchQuery.issue.searchParams.searchTerms.number,
-					10
-				) === parseInt(match.issue_number, 10)
-			) {
-				match.score += 1;
-			}
-		}
-		// Cover image hash match
-		return await calculateLevenshteinDistance(match, rawFileDetails);
-	});
-	return Promise.all(scoredMatches);
+		return scoredMatches;
+	} catch (error) {
+		// Handle errors here
+		console.error("Error in matchScorer:", error);
+		throw error;
+	}
 };
 
 export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	// Iterate over volumes, checking to see:
 	// 1. If the detected year of the issue falls in the range (end_year >= {detected year for issue} >= start_year )
 	// 2. If there is a strong string comparison between the volume name and the issue  name ??
-	const issueNumber = parseInt(
-		scorerConfiguration.searchParams.number,
-		10
-	);
-	const issueYear = parseISO(
-		scorerConfiguration.searchParams.year
-	);
+	const issueNumber = parseInt(scorerConfiguration.searchParams.number, 10);
+	const issueYear = parseISO(scorerConfiguration.searchParams.year);
 	const foo = volumes.map((volume: any, idx: number) => {
 		let volumeMatchScore = 0;
 		const volumeStartYear = !isNil(volume.start_year)
@@ -114,26 +111,34 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		// 1. If there is a subtitle in the candidate volume's name, add it to the issueNameMatchScore
 		// If not, move on.
 		let subtitleMatchScore = 0;
-		if(!isNil(scorerConfiguration.searchParams.subtitle)) {
-			subtitleMatchScore = stringSimilarity.compareTwoStrings(scorerConfiguration.searchParams.subtitle, volume.name);
-			if(subtitleMatchScore > 0.1) {
+		if (!isNil(scorerConfiguration.searchParams.subtitle)) {
+			subtitleMatchScore = stringSimilarity.compareTwoStrings(
+				scorerConfiguration.searchParams.subtitle,
+				volume.name
+			);
+			if (subtitleMatchScore > 0.1) {
 				issueNameMatchScore += subtitleMatchScore;
 			}
 		}
 		// 2. If issue year starts after the candidate volume's start year or is the same year, +2 to volumeMatchScore
 		if (!isNil(volumeStartYear)) {
-			if (isSameYear(issueYear, volumeStartYear) ||
-				isAfter(issueYear, volumeStartYear)) {
-					volumeMatchScore += 2;
-				}
+			if (
+				isSameYear(issueYear, volumeStartYear) ||
+				isAfter(issueYear, volumeStartYear)
+			) {
+				volumeMatchScore += 2;
+			}
 		}
 		// 3. If issue number falls in the range of candidate volume's first issue # and last issue #, +3 to volumeMatchScore
-		if(!isNil(firstIssueNumber) && !isNil(lastIssueNumber)) {
-			if(firstIssueNumber <= issueNumber || issueNumber <= lastIssueNumber) {
+		if (!isNil(firstIssueNumber) && !isNil(lastIssueNumber)) {
+			if (
+				firstIssueNumber <= issueNumber ||
+				issueNumber <= lastIssueNumber
+			) {
 				volumeMatchScore += 3;
 			}
 		}
-		if(issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
+		if (issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
 			console.log(`Found a match for criteria, volume ID: ${volume.id}`);
 			return volume.id;
 		}
@@ -144,17 +149,30 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 	new Promise((resolve, reject) => {
 		https.get(match.image.small_url, (response: any) => {
+			console.log(rawFileDetails.cover.filePath);
 			const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
-			const file = createWriteStream(`./userdata/temporary/${fileName}`);
+			const file = createWriteStream(
+				`${process.env.USERDATA_DIRECTORY}/temporary/${fileName}`
+			);
 			const fileStream = response.pipe(file);
 			fileStream.on("finish", async () => {
 				// 1. hash of the cover image we have on hand
+				const coverFileName = rawFileDetails.cover.filePath
+					.split("/")
+					.at(-1);
+				const coverDirectory = rawFileDetails.containedIn
+					.split("/")
+					.at(-1);
 				const hash1 = await imghash.hash(
-					path.resolve(rawFileDetails.cover.filePath)
+					path.resolve(
+						`${process.env.USERDATA_DIRECTORY}/covers/${coverDirectory}/${coverFileName}`
+					)
 				);
 				// 2. hash of the cover of the potential match
 				const hash2 = await imghash.hash(
-					path.resolve(`./userdata/temporary/${fileName}`)
+					path.resolve(
+						`${process.env.USERDATA_DIRECTORY}/temporary/${fileName}`
+					)
 				);
 				if (!isUndefined(hash1) && !isUndefined(hash2)) {
 					const levenshteinDistance = leven(hash1, hash2);

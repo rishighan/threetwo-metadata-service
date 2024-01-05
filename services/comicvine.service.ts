@@ -190,6 +190,8 @@ export default class ComicVineService extends Service {
 								"Searching against: ",
 								ctx.params.scorerConfiguration.searchParams
 							);
+							const { rawFileDetails, scorerConfiguration } =
+								ctx.params;
 							const results: any = [];
 							console.log(
 								"passed to fetchVolumesFromCV",
@@ -290,10 +292,42 @@ export default class ComicVineService extends Service {
 									return issue;
 								}
 							);
+
+							// Score the final matches
+							const foo = await this.broker.call(
+								"comicvine.getComicVineMatchScores",
+								{
+									finalMatches,
+									rawFileDetails,
+									scorerConfiguration,
+								}
+							);
 							return Promise.all(finalMatches);
 						} catch (error) {
 							console.log(error);
 						}
+					},
+				},
+				getComicVineMatchScores: {
+					rest: "POST /getComicVineMatchScores",
+					handler: async (
+						ctx: Context<{
+							finalMatches: Array<any>;
+							rawFileDetails: any;
+							scorerConfiguration: any;
+						}>
+					) => {
+						const {
+							finalMatches,
+							rawFileDetails,
+							scorerConfiguration,
+						} = ctx.params;
+						console.log(ctx.params);
+						return await matchScorer(
+							finalMatches,
+							scorerConfiguration.searchParams,
+							rawFileDetails
+						);
 					},
 				},
 			},
