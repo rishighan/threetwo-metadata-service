@@ -3,7 +3,7 @@
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import delay from "delay";
-import { isNil, isUndefined } from "lodash";
+import { isNil } from "lodash";
 import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 import {
@@ -72,14 +72,14 @@ export default class ComicVineService extends Service {
 				},
 				getIssuesForSeries: {
 					rest: "POST /getIssuesForSeries",
-					params: {},
 					handler: async (
-						ctx: Context<{ comicObjectID: string }>
+						ctx: Context<{ comicObjectId: string }>
 					) => {
+						const { comicObjectId } = ctx.params;
 						// 1. Query mongo to get the comic document by its _id
 						const comicBookDetails: any = await this.broker.call(
 							"library.getComicBookById",
-							{ id: ctx.params.comicObjectID }
+							{ id: comicObjectId }
 						);
 						// 2. Query CV and get metadata for them
 						const issues = await axios({
@@ -161,6 +161,32 @@ export default class ComicVineService extends Service {
 						return { result: paginatedData, meta: paginationInfo };
 					},
 				},
+				getStoryArcs: {
+					rest: "POST /getStoryArcs",
+					handler: async (ctx: Context<{ comicObject: any }>) => {
+						const { comicObject } = ctx.params;
+						console.log(JSON.stringify(comicObject, null, 2));
+						// 2. Query CV and get metadata for them
+						const storyArcs = await axios({
+							url:
+								CV_BASE_URL +
+								"story_arcs" +
+								"?api_key=" +
+								process.env.COMICVINE_API_KEY,
+							params: {
+								resources: "story_arcs",
+								limit: "100",
+								format: "json",
+								filter: `volume:${comicObject.sourcedMetadata.comicvine.volumeInformation.id}`,
+							},
+							headers: {
+								Accept: "application/json",
+								"User-Agent": "ThreeTwo",
+							},
+						});
+						return storyArcs.data;
+					},
+				},
 				volumeBasedSearch: {
 					rest: "POST /volumeBasedSearch",
 					params: {},
@@ -223,7 +249,7 @@ export default class ComicVineService extends Service {
 								}
 							);
 
-							// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
+							// 2b. E.g.: cover_date:2014-01-01|2016-12-31 for the issue year 2015
 							let coverDateFilter = "";
 							if (
 								!isNil(
