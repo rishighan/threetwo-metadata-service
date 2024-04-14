@@ -3,7 +3,7 @@
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
 import delay from "delay";
-import { isNil } from "lodash";
+import { isNil, isUndefined } from "lodash";
 import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 import {
@@ -11,6 +11,7 @@ import {
 	scrapeIssuePage,
 } from "../utils/scraping.utils";
 const { calculateLimitAndOffset, paginate } = require("paginate-info");
+const { MoleculerError } = require("moleculer").Errors;
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("ComicVine API Key: ", process.env.COMICVINE_API_KEY);
@@ -28,7 +29,7 @@ export default class ComicVineService extends Service {
 							format: string;
 							sort: string;
 							query: string;
-							fieldList: string;
+							field_list: string;
 							limit: string;
 							offset: string;
 							resources: string;
@@ -53,18 +54,23 @@ export default class ComicVineService extends Service {
 					handler: async (
 						ctx: Context<{
 							volumeURI: string;
-							data: {};
+							fieldList: string;
 						}>
 					) => {
+						const { volumeURI, fieldList } = ctx.params;
 						const response = await axios.request({
 							url:
-								ctx.params.volumeURI +
+								volumeURI +
 								"?api_key=" +
 								process.env.COMICVINE_API_KEY,
 							params: {
 								format: "json",
+								field_list: fieldList,
 							},
-							headers: { Accept: "application/json" },
+							headers: {
+								Accept: "application/json",
+								"User-Agent": "ThreeTwo",
+							},
 						});
 						const { data } = response;
 						return data;
@@ -161,30 +167,45 @@ export default class ComicVineService extends Service {
 						return { result: paginatedData, meta: paginationInfo };
 					},
 				},
-				getStoryArcs: {
-					rest: "POST /getStoryArcs",
-					handler: async (ctx: Context<{ comicObject: any }>) => {
-						const { comicObject } = ctx.params;
-						console.log(JSON.stringify(comicObject, null, 2));
+				getResource: {
+					rest: "POST /getResource",
+					handler: async (
+						ctx: Context<{
+							resources: string;
+							filter: string;
+							fieldList: string;
+						}>
+					) => {
+						const { resources, filter, fieldList } = ctx.params;
+						console.log(JSON.stringify(ctx.params, null, 2));
+						console.log(
+							CV_BASE_URL +
+								`${resources}` +
+								"?api_key=" +
+								process.env.COMICVINE_API_KEY
+						);
 						// 2. Query CV and get metadata for them
-						const storyArcs = await axios({
+						const response = await axios({
+							method: "GET",
 							url:
 								CV_BASE_URL +
-								"story_arcs" +
+								`${resources}` +
 								"?api_key=" +
 								process.env.COMICVINE_API_KEY,
 							params: {
-								resources: "story_arcs",
+								resources: `${resources}`,
 								limit: "100",
 								format: "json",
-								filter: `volume:${comicObject.sourcedMetadata.comicvine.volumeInformation.id}`,
+								filter: `${filter}`,
+								field_list: `${fieldList}`,
 							},
 							headers: {
 								Accept: "application/json",
 								"User-Agent": "ThreeTwo",
 							},
 						});
-						return storyArcs.data;
+						console.log(response.data);
+						return response.data;
 					},
 				},
 				volumeBasedSearch: {
@@ -354,6 +375,164 @@ export default class ComicVineService extends Service {
 							scorerConfiguration.searchParams,
 							rawFileDetails
 						);
+					},
+				},
+				getStoryArcs: {
+					rest: "POST /getStoryArcs",
+					handler: async (
+						ctx: Context<{ volumeUrl: string; volumeId: number }>
+					) => {
+						const { volumeUrl, volumeId } = ctx.params;
+						try {
+							const volumeResponse = await axios({
+								url:
+									volumeUrl +
+									"?api_key=" +
+									process.env.COMICVINE_API_KEY,
+								method: "GET",
+								params: {
+									limit: "100",
+									format: "json",
+									resources: "volumes",
+								},
+								headers: {
+									Accept: "application/json",
+									"User-Agent": "ThreeTwo",
+								},
+							});
+							const volumeData = volumeResponse.data;
+
+							if (volumeData.results.issues.length > 0) {
+								const issuePromises =
+									volumeData.results.issues.map(
+										async (issue: any) => {
+											const issueUrl = `${CV_BASE_URL}issue/4000-${issue.id}/?api_key=${process.env.COMICVINE_API_KEY}&format=json&field_list=story_arc_credits,description,image`;
+											try {
+												const issueResponse =
+													await axios.get(issueUrl, {
+														params: {
+															limit: "100",
+															format: "json",
+														},
+														headers: {
+															Accept: "application/json",
+															"User-Agent":
+																"ThreeTwo",
+														},
+													});
+												const issueData =
+													issueResponse.data.results;
+
+												// Transform each story arc to include issue's description and image
+												return (
+													issueData.story_arc_credits?.map(
+														(arc: any) => ({
+															...arc,
+															issueDescription:
+																issueData.description,
+															issueImage:
+																issueData.image,
+														})
+													) || []
+												);
+											} catch (error) {
+												console.error(
+													"An error occurred while fetching issue data:",
+													error.message
+												);
+												return []; // Return an empty array on error
+											}
+										}
+									);
+
+								try {
+									const storyArcsResults: any =
+										await Promise.all(issuePromises);
+									// Flatten the array of arrays
+									const flattenedStoryArcs =
+										storyArcsResults.flat();
+
+									// Deduplicate based on arc ID, while preserving the last seen issueDescription and issueImage
+									const uniqueStoryArcs = Array.from(
+										new Map(
+											flattenedStoryArcs.map(
+												(arc: any) => [arc.id, arc]
+											)
+										).values()
+									);
+
+									console.log(
+										`Found ${uniqueStoryArcs.length} unique story arc(s) for volume ID ${volumeId}:`
+									);
+									uniqueStoryArcs.forEach((arc: any) => {
+										console.log(
+											`- ${arc.name} (ID: ${arc.id}) with issueDescription and issueImage`
+										);
+									});
+
+									return uniqueStoryArcs;
+								} catch (error) {
+									console.error(
+										"An error occurred while processing story arcs:",
+										error
+									);
+								}
+							} else {
+								console.log(
+									"No issues found for the specified volume."
+								);
+							}
+						} catch (error) {
+							console.error(
+								"An error occurred while fetching data from ComicVine:",
+								error
+							);
+						}
+					},
+				},
+
+				getIssuesForVolume: {
+					rest: "POST /getIssuesForVolume",
+
+					async handler(ctx: Context<{ volumeId: number }>) {
+						const { volumeId } = ctx.params;
+						const issuesUrl = `${CV_BASE_URL}issues/?api_key=${process.env.COMICVINE_API_KEY}&filter=volume:${volumeId}&format=json&field_list=id,name,issue_number,description,image`;
+
+						try {
+							const response = await axios({
+								url: issuesUrl,
+								method: "GET",
+								params: {
+									limit: "100",
+									format: "json",
+								},
+								headers: {
+									Accept: "application/json",
+									"User-Agent": "ThreeTwo",
+								},
+							});
+
+							// Map over the issues to ensure each issue has `description` and `image` fields
+							const issuesWithDescriptionAndImage =
+								response.data.results.map((issue: any) => ({
+									...issue,
+									description: issue.description || "", // Ensure description field exists and default to empty string if not
+									image: issue.image || {}, // Ensure image field exists and default to empty object if not
+								}));
+
+							return issuesWithDescriptionAndImage;
+						} catch (error) {
+							this.logger.error(
+								"Error fetching issues from ComicVine:",
+								error.message
+							);
+							throw new MoleculerError(
+								"Failed to fetch issues",
+								500,
+								"FETCH_ERROR",
+								{ error: error.message }
+							);
+						}
 					},
 				},
 			},
