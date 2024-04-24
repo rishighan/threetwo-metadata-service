@@ -2,7 +2,6 @@
 
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import delay from "delay";
 import { isNil, isUndefined } from "lodash";
 import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
@@ -496,19 +495,20 @@ export default class ComicVineService extends Service {
 
 					async handler(ctx: Context<{ volumeId: number }>) {
 						const { volumeId } = ctx.params;
-						const issuesUrl = `${CV_BASE_URL}issues/?api_key=${process.env.COMICVINE_API_KEY}&filter=volume:${volumeId}&format=json&field_list=id,name,issue_number,description,image`;
-
+						const issuesUrl = `${CV_BASE_URL}issues/?api_key=${process.env.COMICVINE_API_KEY}`;
 						try {
-							const response = await axios({
-								url: issuesUrl,
-								method: "GET",
+							const response = await axios.get(issuesUrl, {
 								params: {
-									limit: "100",
+									api_key: process.env.COMICVINE_API_KEY,
+									filter: `volume:${volumeId}`,
 									format: "json",
+									field_list:
+										"id,name,image,issue_number,cover_date,description",
+									limit: 100, // Adjust the limit as per your requirement
 								},
 								headers: {
 									Accept: "application/json",
-									"User-Agent": "ThreeTwo",
+									"User-Agent": "ThreeTwo", // It's good practice to define a User-Agent, especially when using APIs that might track request sources
 								},
 							});
 
