@@ -492,7 +492,6 @@ export default class ComicVineService extends Service {
 
 				getIssuesForVolume: {
 					rest: "POST /getIssuesForVolume",
-
 					async handler(ctx: Context<{ volumeId: number }>) {
 						const { volumeId } = ctx.params;
 						const issuesUrl = `${CV_BASE_URL}issues/?api_key=${process.env.COMICVINE_API_KEY}`;
@@ -504,23 +503,31 @@ export default class ComicVineService extends Service {
 									format: "json",
 									field_list:
 										"id,name,image,issue_number,cover_date,description",
-									limit: 100, // Adjust the limit as per your requirement
+									limit: 100,
 								},
 								headers: {
 									Accept: "application/json",
-									"User-Agent": "ThreeTwo", // It's good practice to define a User-Agent, especially when using APIs that might track request sources
+									"User-Agent": "ThreeTwo",
 								},
 							});
 
-							// Map over the issues to ensure each issue has `description` and `image` fields
-							const issuesWithDescriptionAndImage =
-								response.data.results.map((issue: any) => ({
-									...issue,
-									description: issue.description || "", // Ensure description field exists and default to empty string if not
-									image: issue.image || {}, // Ensure image field exists and default to empty object if not
-								}));
+							// Map over the issues to include the year extracted from cover_date
+							const issuesWithDescriptionImageAndYear =
+								response.data.results.map((issue: any) => {
+									const year = issue.cover_date
+										? new Date(
+												issue.cover_date
+										  ).getFullYear()
+										: null; // Extract the year from cover_date
+									return {
+										...issue,
+										year: year,
+										description: issue.description || "",
+										image: issue.image || {},
+									};
+								});
 
-							return issuesWithDescriptionAndImage;
+							return issuesWithDescriptionImageAndYear;
 						} catch (error) {
 							this.logger.error(
 								"Error fetching issues from ComicVine:",
