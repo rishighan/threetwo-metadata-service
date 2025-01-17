@@ -55,3 +55,34 @@ export const scrapeIssuePage = async (url: string) => {
 		.querySelector("div.series-pagination > a.series").getAttribute("href");
     return seriesDOMElement;
 };
+
+
+export const getWeeklyPullList = async () => {
+	const url = "https://www.tfaw.com/comics/new-releases.html";
+	const response = await axios(url);
+	const dom = new JSDOM(response.data, {
+		url,
+		referrer: url,
+		contentType: "text/html",
+		includeNodeLocations: true,
+		storageQuota: 10000000,
+	});
+
+	const pullList: any[] = [];
+	// Node for the comics container
+	const issueNodes = dom.window.document.querySelectorAll("ol.products > li");
+
+	issueNodes.forEach(node => {
+		const coverImageUrl = node.querySelector("img.photo").getAttribute("data-src");
+		const name = node.querySelector("div.product > a.product").textContent.trim();
+		const publicationDate = node.querySelector("div.product-item-date").textContent.trim();
+		pullList.push({
+			coverImageUrl,
+			name,
+			publicationDate,
+		});
+	});
+
+	return pullList;
+
+};

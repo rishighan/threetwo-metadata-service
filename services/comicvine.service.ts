@@ -8,6 +8,7 @@ import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 import {
 	scrapeIssuesFromSeriesPage,
 	scrapeIssuePage,
+	getWeeklyPullList,
 } from "../utils/scraping.utils";
 const { calculateLimitAndOffset, paginate } = require("paginate-info");
 const { MoleculerError } = require("moleculer").Errors;
@@ -136,22 +137,8 @@ export default class ComicVineService extends Service {
 							pageSize
 						);
 
-						const response = await fetchReleases(
-							new Date(ctx.params.startDate),
-							{
-								publishers: [
-									"DC Comics",
-									"Marvel Comics",
-									"Image Comics",
-								],
-								filter: [
-									FilterTypes.Regular,
-									FilterTypes.Digital,
-									FilterTypes.Annual,
-								],
-								sort: SortTypes.AlphaAsc,
-							}
-						);
+						const response = await getWeeklyPullList();
+						console.log(JSON.stringify(response, null, 4));
 
 						const count = response.length;
 						const paginatedData = response.slice(
