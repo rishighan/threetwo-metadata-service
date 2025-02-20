@@ -2,15 +2,16 @@
 
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import delay from "delay";
 import { isNil, isUndefined } from "lodash";
 import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
 import {
 	scrapeIssuesFromSeriesPage,
 	scrapeIssuePage,
+	getWeeklyPullList,
 } from "../utils/scraping.utils";
 const { calculateLimitAndOffset, paginate } = require("paginate-info");
+const { MoleculerError } = require("moleculer").Errors;
 
 const CV_BASE_URL = "https://comicvine.gamespot.com/api/";
 console.log("ComicVine API Key: ", process.env.COMICVINE_API_KEY);
@@ -28,7 +29,7 @@ export default class ComicVineService extends Service {
 							format: string;
 							sort: string;
 							query: string;
-							fieldList: string;
+							field_list: string;
 							limit: string;
 							offset: string;
 							resources: string;
@@ -53,18 +54,23 @@ export default class ComicVineService extends Service {
 					handler: async (
 						ctx: Context<{
 							volumeURI: string;
-							data: {};
+							fieldList: string;
 						}>
 					) => {
+						const { volumeURI, fieldList } = ctx.params;
 						const response = await axios.request({
 							url:
-								ctx.params.volumeURI +
+								volumeURI +
 								"?api_key=" +
 								process.env.COMICVINE_API_KEY,
 							params: {
 								format: "json",
+								field_list: fieldList,
 							},
-							headers: { Accept: "application/json" },
+							headers: {
+								Accept: "application/json",
+								"User-Agent": "ThreeTwo",
+							},
 						});
 						const { data } = response;
 						return data;
@@ -72,14 +78,14 @@ export default class ComicVineService extends Service {
 				},
 				getIssuesForSeries: {
 					rest: "POST /getIssuesForSeries",
-					params: {},
 					handler: async (
-						ctx: Context<{ comicObjectID: string }>
+						ctx: Context<{ comicObjectId: string }>
 					) => {
+						const { comicObjectId } = ctx.params;
 						// 1. Query mongo to get the comic document by its _id
 						const comicBookDetails: any = await this.broker.call(
 							"library.getComicBookById",
-							{ id: ctx.params.comicObjectID }
+							{ id: comicObjectId }
 						);
 						// 2. Query CV and get metadata for them
 						const issues = await axios({
@@ -131,22 +137,8 @@ export default class ComicVineService extends Service {
 							pageSize
 						);
 
-						const response = await fetchReleases(
-							new Date(ctx.params.startDate),
-							{
-								publishers: [
-									"DC Comics",
-									"Marvel Comics",
-									"Image Comics",
-								],
-								filter: [
-									FilterTypes.Regular,
-									FilterTypes.Digital,
-									FilterTypes.Annual,
-								],
-								sort: SortTypes.AlphaAsc,
-							}
-						);
+						const response = await getWeeklyPullList();
+						console.log(JSON.stringify(response, null, 4));
 
 						const count = response.length;
 						const paginatedData = response.slice(
@@ -159,6 +151,47 @@ export default class ComicVineService extends Service {
 							paginatedData
 						);
 						return { result: paginatedData, meta: paginationInfo };
+					},
+				},
+				getResource: {
+					rest: "POST /getResource",
+					handler: async (
+						ctx: Context<{
+							resources: string;
+							filter: string;
+							fieldList: string;
+						}>
+					) => {
+						const { resources, filter, fieldList } = ctx.params;
+						console.log(JSON.stringify(ctx.params, null, 2));
+						console.log(
+							CV_BASE_URL +
+								`${resources}` +
+								"?api_key=" +
+								process.env.COMICVINE_API_KEY
+						);
+						// 2. Query CV and get metadata for them
+						const response = await axios({
+							method: "GET",
+							url:
+								CV_BASE_URL +
+								`${resources}` +
+								"?api_key=" +
+								process.env.COMICVINE_API_KEY,
+							params: {
+								resources: `${resources}`,
+								limit: "100",
+								format: "json",
+								filter: `${filter}`,
+								field_list: `${fieldList}`,
+							},
+							headers: {
+								Accept: "application/json",
+								"User-Agent": "ThreeTwo",
+							},
+						});
+						console.log(response.data);
+						return response.data;
 					},
 				},
 				volumeBasedSearch: {
@@ -223,7 +256,7 @@ export default class ComicVineService extends Service {
 								}
 							);
 
-							// 2b. cover_date:2014-01-01|2016-12-31 for the issue year 2015
+							// 2b. E.g.: cover_date:2014-01-01|2016-12-31 for the issue year 2015
 							let coverDateFilter = "";
 							if (
 								!isNil(
@@ -328,6 +361,172 @@ export default class ComicVineService extends Service {
 							scorerConfiguration.searchParams,
 							rawFileDetails
 						);
+					},
+				},
+				getStoryArcs: {
+					rest: "POST /getStoryArcs",
+					handler: async (
+						ctx: Context<{ volumeUrl: string; volumeId: number }>
+					) => {
+						const { volumeUrl, volumeId } = ctx.params;
+						try {
+							const volumeResponse = await axios({
+								url:
+									volumeUrl +
+									"?api_key=" +
+									process.env.COMICVINE_API_KEY,
+								method: "GET",
+								params: {
+									limit: "100",
+									format: "json",
+									resources: "volumes",
+								},
+								headers: {
+									Accept: "application/json",
+									"User-Agent": "ThreeTwo",
+								},
+							});
+							const volumeData = volumeResponse.data;
+
+							if (volumeData.results.issues.length > 0) {
+								const issuePromises =
+									volumeData.results.issues.map(
+										async (issue: any) => {
+											const issueUrl = `${CV_BASE_URL}issue/4000-${issue.id}/?api_key=${process.env.COMICVINE_API_KEY}&format=json&field_list=story_arc_credits,description,image`;
+											try {
+												const issueResponse =
+													await axios.get(issueUrl, {
+														params: {
+															limit: "100",
+															format: "json",
+														},
+														headers: {
+															Accept: "application/json",
+															"User-Agent":
+																"ThreeTwo",
+														},
+													});
+												const issueData =
+													issueResponse.data.results;
+
+												// Transform each story arc to include issue's description and image
+												return (
+													issueData.story_arc_credits?.map(
+														(arc: any) => ({
+															...arc,
+															issueDescription:
+																issueData.description,
+															issueImage:
+																issueData.image,
+														})
+													) || []
+												);
+											} catch (error) {
+												console.error(
+													"An error occurred while fetching issue data:",
+													error.message
+												);
+												return []; // Return an empty array on error
+											}
+										}
+									);
+
+								try {
+									const storyArcsResults: any =
+										await Promise.all(issuePromises);
+									// Flatten the array of arrays
+									const flattenedStoryArcs =
+										storyArcsResults.flat();
+
+									// Deduplicate based on arc ID, while preserving the last seen issueDescription and issueImage
+									const uniqueStoryArcs = Array.from(
+										new Map(
+											flattenedStoryArcs.map(
+												(arc: any) => [arc.id, arc]
+											)
+										).values()
+									);
+
+									console.log(
+										`Found ${uniqueStoryArcs.length} unique story arc(s) for volume ID ${volumeId}:`
+									);
+									uniqueStoryArcs.forEach((arc: any) => {
+										console.log(
+											`- ${arc.name} (ID: ${arc.id}) with issueDescription and issueImage`
+										);
+									});
+
+									return uniqueStoryArcs;
+								} catch (error) {
+									console.error(
+										"An error occurred while processing story arcs:",
+										error
+									);
+								}
+							} else {
+								console.log(
+									"No issues found for the specified volume."
+								);
+							}
+						} catch (error) {
+							console.error(
+								"An error occurred while fetching data from ComicVine:",
+								error
+							);
+						}
+					},
+				},
+
+				getIssuesForVolume: {
+					rest: "POST /getIssuesForVolume",
+					async handler(ctx: Context<{ volumeId: number }>) {
+						const { volumeId } = ctx.params;
+						const issuesUrl = `${CV_BASE_URL}issues/?api_key=${process.env.COMICVINE_API_KEY}`;
+						try {
+							const response = await axios.get(issuesUrl, {
+								params: {
+									api_key: process.env.COMICVINE_API_KEY,
+									filter: `volume:${volumeId}`,
+									format: "json",
+									field_list:
+										"id,name,image,issue_number,cover_date,description",
+									limit: 100,
+								},
+								headers: {
+									Accept: "application/json",
+									"User-Agent": "ThreeTwo",
+								},
+							});
+
+							// Map over the issues to include the year extracted from cover_date
+							const issuesWithDescriptionImageAndYear =
+								response.data.results.map((issue: any) => {
+									const year = issue.cover_date
+										? new Date(
+												issue.cover_date
+										  ).getFullYear()
+										: null; // Extract the year from cover_date
+									return {
+										...issue,
+										year: year,
+										description: issue.description || "",
+										image: issue.image || {},
+									};
+								});
+
+							return issuesWithDescriptionImageAndYear;
+						} catch (error) {
+							this.logger.error(
+								"Error fetching issues from ComicVine:",
+								error.message
+							);
+							throw new MoleculerError(
+								"Failed to fetch issues",
+								500,
+								"FETCH_ERROR",
+								{ error: error.message }
+							);
+						}
 					},
 				},
 			},
