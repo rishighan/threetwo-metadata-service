@@ -31,7 +31,7 @@ SOFTWARE.
  *     Initial:        2021/07/29        Rishi Ghan
  */
 
-import { createWriteStream } from "fs";
+import { createWriteStream, existsSync, mkdirSync } from "fs";
 import path from "path";
 import https from "https";
 import stringSimilarity from "string-similarity";
@@ -151,6 +151,10 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 		https.get(match.image.small_url, (response: any) => {
 			console.log(rawFileDetails.cover.filePath);
 			const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
+			// Ensure the `temporary` directory exists
+			if (!existsSync("temporary")) {
+				mkdirSync("temporary", { recursive: true });
+			}
 			const file = createWriteStream(
 				`${process.env.USERDATA_DIRECTORY}/temporary/${fileName}`
 			);
