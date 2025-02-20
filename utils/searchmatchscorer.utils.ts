@@ -152,8 +152,9 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 			console.log(rawFileDetails.cover.filePath);
 			const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
 			// Ensure the `temporary` directory exists
-			if (!existsSync("temporary")) {
-				mkdirSync("temporary", { recursive: true });
+			const tempDir = path.join(`${process.env.USERDATA_DIRECTORY}`, "temporary");
+			if (!existsSync(tempDir)) {
+				mkdirSync(tempDir, { recursive: true });
 			}
 			const file = createWriteStream(
 				`${process.env.USERDATA_DIRECTORY}/temporary/${fileName}`
