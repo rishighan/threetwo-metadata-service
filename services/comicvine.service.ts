@@ -5,11 +5,7 @@ import axios from "axios";
 import { isNil, isUndefined } from "lodash";
 import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
-import {
-	scrapeIssuesFromSeriesPage,
-	scrapeIssuePage,
-	getWeeklyPullList,
-} from "../utils/scraping.utils";
+import { scrapeIssuePage, getWeeklyPullList } from "../utils/scraping.utils";
 const { calculateLimitAndOffset, paginate } = require("paginate-info");
 const { MoleculerError } = require("moleculer").Errors;
 
@@ -108,22 +104,10 @@ export default class ComicVineService extends Service {
 						return issues.data;
 					},
 				},
-				scrapeLOCGForSeries: {
-					rest: "POST /scrapeLOCGForSeries",
-					params: {},
-					handler: async (ctx: Context<{}>) => {
-						const seriesURIFragment = await scrapeIssuePage(
-							"https://leagueofcomicgeeks.com/comic/5878833/hulk-4"
-						);
-						return await scrapeIssuesFromSeriesPage(
-							`https://leagueofcomicgeeks.com/${seriesURIFragment}`
-						);
-					},
-				},
 				getWeeklyPullList: {
-					rest: "GET /getWeeklyPullList",
+					rest: "POST /scrapeLOCGForSeries",
+					timeout: 30000,
 					params: {},
-					timeout: 10000000,
 					handler: async (
 						ctx: Context<{
 							startDate: string;
@@ -131,26 +115,32 @@ export default class ComicVineService extends Service {
 							pageSize: string;
 						}>
 					) => {
-						const { currentPage, pageSize } = ctx.params;
+						const { currentPage, pageSize, startDate } = ctx.params;
+						console.log(`date for the pull list: ${startDate}`);
 						const { limit, offset } = calculateLimitAndOffset(
-							currentPage,
-							pageSize
+							parseInt(currentPage, 10),
+							parseInt(pageSize, 10)
 						);
 
-						const response = await getWeeklyPullList();
-						console.log(JSON.stringify(response, null, 4));
+						const url = `https://leagueofcomicgeeks.com/comics/new-comics/${startDate}`;
+						const issues = await getWeeklyPullList(url);
 
-						const count = response.length;
-						const paginatedData = response.slice(
+						const count = issues.length;
+						const paginatedData = issues.slice(
 							offset,
 							offset + limit
 						);
+
 						const paginationInfo = paginate(
-							currentPage,
+							parseInt(currentPage, 10),
 							count,
 							paginatedData
 						);
-						return { result: paginatedData, meta: paginationInfo };
+
+						return {
+							result: paginatedData,
+							meta: paginationInfo,
+						};
 					},
 				},
 				getResource: {
