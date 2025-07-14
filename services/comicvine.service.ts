@@ -176,7 +176,7 @@ export default class ComicVineService extends Service {
 								field_list: `${fieldList}`,
 							},
 							headers: {
-								Accept: "application/json",
+								"Accept": "application/json",
 								"User-Agent": "ThreeTwo",
 							},
 						});
@@ -279,7 +279,7 @@ export default class ComicVineService extends Service {
 									filter: filterString,
 								},
 								headers: {
-									Accept: "application/json",
+									"Accept": "application/json",
 									"User-Agent": "ThreeTwo",
 								},
 							});
@@ -335,7 +335,7 @@ export default class ComicVineService extends Service {
 					rest: "POST /getComicVineMatchScores",
 					handler: async (
 						ctx: Context<{
-							finalMatches: Array<any>;
+							finalMatches: any[];
 							rawFileDetails: any;
 							scorerConfiguration: any;
 						}>
@@ -372,7 +372,7 @@ export default class ComicVineService extends Service {
 									resources: "volumes",
 								},
 								headers: {
-									Accept: "application/json",
+									"Accept": "application/json",
 									"User-Agent": "ThreeTwo",
 								},
 							});
@@ -391,7 +391,7 @@ export default class ComicVineService extends Service {
 															format: "json",
 														},
 														headers: {
-															Accept: "application/json",
+															"Accept": "application/json",
 															"User-Agent":
 																"ThreeTwo",
 														},
@@ -483,7 +483,7 @@ export default class ComicVineService extends Service {
 									limit: 100,
 								},
 								headers: {
-									Accept: "application/json",
+									"Accept": "application/json",
 									"User-Agent": "ThreeTwo",
 								},
 							});
@@ -498,7 +498,7 @@ export default class ComicVineService extends Service {
 										: null; // Extract the year from cover_date
 									return {
 										...issue,
-										year: year,
+										year,
 										description: issue.description || "",
 										image: issue.image || {},
 									};
@@ -538,7 +538,7 @@ export default class ComicVineService extends Service {
 							resources,
 						},
 						headers: {
-							Accept: "application/json",
+							"Accept": "application/json",
 							"User-Agent": "ThreeTwo",
 						},
 					});
