@@ -56,6 +56,163 @@ export default class ApiService extends Service {
 						// Enable/disable logging
 						logging: true,
 					},
+					// GraphQL Gateway endpoint with schema stitching
+					{
+						path: "/graphql",
+						whitelist: ["gateway.query"],
+						cors: {
+							origin: "*",
+							methods: ["GET", "POST", "OPTIONS"],
+							allowedHeaders: ["*"],
+							exposedHeaders: [],
+							credentials: false,
+							maxAge: 3600,
+						},
+						aliases: {
+							"POST /": async (req: any, res: any) => {
+								try {
+									const { query, variables, operationName } = req.body;
+									
+									const result = await req.$ctx.broker.call("gateway.query", {
+										query,
+										variables,
+										operationName,
+									});
+
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify(result));
+								} catch (error: any) {
+									res.statusCode = 500;
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify({
+										errors: [{
+											message: error.message,
+											extensions: {
+												code: error.code || "INTERNAL_SERVER_ERROR",
+											},
+										}],
+									}));
+								}
+							},
+							"GET /": async (req: any, res: any) => {
+								// Support GraphQL Playground/introspection via GET
+								const query = req.$params.query;
+								const variables = req.$params.variables
+									? JSON.parse(req.$params.variables)
+									: undefined;
+								const operationName = req.$params.operationName;
+
+								try {
+									const result = await req.$ctx.broker.call("gateway.query", {
+										query,
+										variables,
+										operationName,
+									});
+
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify(result));
+								} catch (error: any) {
+									res.statusCode = 500;
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify({
+										errors: [{
+											message: error.message,
+											extensions: {
+												code: error.code || "INTERNAL_SERVER_ERROR",
+											},
+										}],
+									}));
+								}
+							},
+						},
+						bodyParsers: {
+							json: {
+								strict: false,
+								limit: "1MB",
+							},
+						},
+						mappingPolicy: "restrict",
+						logging: true,
+					},
+					// Standalone metadata GraphQL endpoint (no stitching)
+					// This endpoint exposes only the local metadata schema for the core-service to stitch
+					{
+						path: "/metadata-graphql",
+						whitelist: ["graphql.query"],
+						cors: {
+							origin: "*",
+							methods: ["GET", "POST", "OPTIONS"],
+							allowedHeaders: ["*"],
+							exposedHeaders: [],
+							credentials: false,
+							maxAge: 3600,
+						},
+						aliases: {
+							"POST /": async (req: any, res: any) => {
+								try {
+									const { query, variables, operationName } = req.body;
+									
+									const result = await req.$ctx.broker.call("graphql.query", {
+										query,
+										variables,
+										operationName,
+									});
+
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify(result));
+								} catch (error: any) {
+									res.statusCode = 500;
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify({
+										errors: [{
+											message: error.message,
+											extensions: {
+												code: error.code || "INTERNAL_SERVER_ERROR",
+											},
+										}],
+									}));
+								}
+							},
+							"GET /": async (req: any, res: any) => {
+								// Support GraphQL Playground/introspection via GET
+								const query = req.$params.query;
+								const variables = req.$params.variables
+									? JSON.parse(req.$params.variables)
+									: undefined;
+								const operationName = req.$params.operationName;
+
+								try {
+									const result = await req.$ctx.broker.call("graphql.query", {
+										query,
+										variables,
+										operationName,
+									});
+
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify(result));
+								} catch (error: any) {
+									res.statusCode = 500;
+									res.setHeader("Content-Type", "application/json");
+									res.end(JSON.stringify({
+										errors: [{
+											message: error.message,
+											extensions: {
+												code: error.code || "INTERNAL_SERVER_ERROR",
+											},
+										}],
+									}));
+								}
+							},
+						},
+						bodyParsers: {
+							json: {
+								strict: false,
+								limit: "1MB",
+							},
+						},
+						mappingPolicy: "restrict",
+						logging: true,
+					},
 				],
 				// Do not log client side errors (does not log an error response when the error.code is 400<=X<500)
 				log4XXResponses: false,

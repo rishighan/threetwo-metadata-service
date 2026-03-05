@@ -27,19 +27,15 @@ export default class MetronService extends Service {
 						console.log(ctx.params);
 						const results = await axios({
 							method: "GET",
-							url: `https://metron.cloud/api/${ctx.params.resource}`,
+							url: `https://metron.cloud/api/${ctx.params.resource}/`,
 							params: {
 								name: ctx.params.query.name,
 								page: ctx.params.query.page,
 							},
-							headers: {
-								"Authorization": "Basic ZnJpc2hpOlRpdHVAMTU4OA=="
-							},
 							auth: {
-								"username": "frishi",
-								"password": "Titu@1588"
+								username: "frishi",
+								password: "Titu@1588"
 							}
-
 						});
 						return results.data;
 					},

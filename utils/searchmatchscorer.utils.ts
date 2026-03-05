@@ -42,16 +42,15 @@ import { isAfter, isSameYear, parseISO } from "date-fns";
 const imghash = require("imghash");
 
 export const matchScorer = async (
-	searchMatches: Promise<any>[],
+	searchMatches: any[],
 	searchQuery: any,
 	rawFileDetails: any
 ): Promise<any> => {
 	const scoredMatches: any = [];
 
 	try {
-		const matches = await Promise.all(searchMatches);
-
-		for (const match of matches) {
+		// searchMatches is already an array of match objects, not promises
+		for (const match of searchMatches) {
 			match.score = 0;
 
 			// Check for the issue name match
@@ -93,7 +92,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	// 2. If there is a strong string comparison between the volume name and the issue  name ??
 	const issueNumber = parseInt(scorerConfiguration.searchParams.number, 10);
 	const issueYear = parseISO(scorerConfiguration.searchParams.year);
-	const foo = volumes.map((volume: any, idx: number) => {
+	const rankedVolumes = volumes.map((volume: any, idx: number) => {
 		let volumeMatchScore = 0;
 		const volumeStartYear = !isNil(volume.start_year)
 			? parseISO(volume.start_year)
@@ -132,18 +131,24 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		// 3. If issue number falls in the range of candidate volume's first issue # and last issue #, +3 to volumeMatchScore
 		if (!isNil(firstIssueNumber) && !isNil(lastIssueNumber)) {
 			if (
-				firstIssueNumber <= issueNumber ||
+				firstIssueNumber <= issueNumber &&
 				issueNumber <= lastIssueNumber
 			) {
 				volumeMatchScore += 3;
 			}
 		}
 		if (issueNameMatchScore > 0.5 && volumeMatchScore > 2) {
-			console.log(`Found a match for criteria, volume ID: ${volume.id}`);
-			return volume.id;
+			console.log(`Found a match for criteria, volume ID: ${volume.id}, score: ${volumeMatchScore}, name match: ${issueNameMatchScore.toFixed(2)}`);
+			return {
+				id: volume.id,
+				volumeMatchScore,
+				issueNameMatchScore,
+				totalScore: volumeMatchScore + issueNameMatchScore
+			};
 		}
+		return null;
 	});
-	return foo.filter((item: any) => !isNil(item));
+	return rankedVolumes.filter((item: any) => !isNil(item));
 };
 
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
