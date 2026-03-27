@@ -151,7 +151,7 @@ export const typeDefs = gql`
 	}
 
 	# Weekly pull list item (from League of Comic Geeks)
-	type PullListItem {
+	type MetadataPullListItem {
 		name: String
 		publisher: String
 		url: String
@@ -165,13 +165,13 @@ export const typeDefs = gql`
 	}
 
 	# Paginated pull list response
-	type PullListResponse {
-		result: [PullListItem!]!
-		meta: PaginationMeta!
+	type MetadataPullListResponse {
+		result: [MetadataPullListItem!]!
+		meta: MetadataPaginationMeta!
 	}
 
 	# Pagination metadata
-	type PaginationMeta {
+	type MetadataPaginationMeta {
 		currentPage: Int!
 		totalPages: Int!
 		pageSize: Int!
@@ -336,7 +336,7 @@ export const typeDefs = gql`
 		"""
 		Get weekly pull list from League of Comic Geeks
 		"""
-		getWeeklyPullList(input: WeeklyPullListInput!): PullListResponse!
+		getWeeklyPullList(input: WeeklyPullListInput!): MetadataPullListResponse!
 
 		"""
 		Fetch resource from Metron API

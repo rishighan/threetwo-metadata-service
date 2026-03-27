@@ -135,10 +135,10 @@ export default class ApiService extends Service {
 						logging: true,
 					},
 					// Standalone metadata GraphQL endpoint (no stitching)
-					// This endpoint exposes only the local metadata schema for the core-service to stitch
+					// This endpoint exposes only the local metadata schema for external services to stitch
 					{
 						path: "/metadata-graphql",
-						whitelist: ["graphql.query"],
+						whitelist: ["gateway.queryLocal"],
 						cors: {
 							origin: "*",
 							methods: ["GET", "POST", "OPTIONS"],
@@ -152,7 +152,7 @@ export default class ApiService extends Service {
 								try {
 									const { query, variables, operationName } = req.body;
 									
-									const result = await req.$ctx.broker.call("graphql.query", {
+									const result = await req.$ctx.broker.call("gateway.queryLocal", {
 										query,
 										variables,
 										operationName,
@@ -182,7 +182,7 @@ export default class ApiService extends Service {
 								const operationName = req.$params.operationName;
 
 								try {
-									const result = await req.$ctx.broker.call("graphql.query", {
+									const result = await req.$ctx.broker.call("gateway.queryLocal", {
 										query,
 										variables,
 										operationName,
