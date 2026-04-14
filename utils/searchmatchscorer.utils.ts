@@ -152,7 +152,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 };
 
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
-	new Promise((resolve, reject) => {
+	new Promise((resolve) => {
 		https.get(match.image.small_url, (response: any) => {
 			console.log(rawFileDetails.cover.filePath);
 			const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
@@ -166,39 +166,42 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 			);
 			const fileStream = response.pipe(file);
 			fileStream.on("finish", async () => {
-				// 1. hash of the cover image we have on hand
-				const coverFileName = rawFileDetails.cover.filePath
-					.split("/")
-					.at(-1);
-				const coverDirectory = rawFileDetails.containedIn
-					.split("/")
-					.at(-1);
-				const hash1 = await imghash.hash(
-					path.resolve(
-						`${process.env.USERDATA_DIRECTORY}/covers/${coverDirectory}/${coverFileName}`
-					)
-				);
-				// 2. hash of the cover of the potential match
-				const hash2 = await imghash.hash(
-					path.resolve(
-						`${process.env.USERDATA_DIRECTORY}/temporary/${fileName}`
-					)
-				);
-				if (!isUndefined(hash1) && !isUndefined(hash2)) {
-					const levenshteinDistance = leven(hash1, hash2);
-					if (levenshteinDistance === 0) {
-						match.score += 2;
-					} else if (
-						levenshteinDistance > 0 &&
-						levenshteinDistance <= 2
-					) {
-						match.score += 1;
-					} else {
-						match.score -= 2;
+				try {
+					// 1. hash of the cover image we have on hand
+					const coverFileName = rawFileDetails.cover.filePath
+						.split("/")
+						.at(-1);
+					const coverDirectory = rawFileDetails.containedIn
+						.split("/")
+						.at(-1);
+					const hash1 = await imghash.hash(
+						path.resolve(
+							`${process.env.USERDATA_DIRECTORY}/covers/${coverDirectory}/${coverFileName}`
+						)
+					);
+					// 2. hash of the cover of the potential match
+					const hash2 = await imghash.hash(
+						path.resolve(
+							`${process.env.USERDATA_DIRECTORY}/temporary/${fileName}`
+						)
+					);
+					if (!isUndefined(hash1) && !isUndefined(hash2)) {
+						const levenshteinDistance = leven(hash1, hash2);
+						if (levenshteinDistance === 0) {
+							match.score += 2;
+						} else if (
+							levenshteinDistance > 0 &&
+							levenshteinDistance <= 2
+						) {
+							match.score += 1;
+						} else {
+							match.score -= 2;
+						}
 					}
 					resolve(match);
-				} else {
-					reject({ error: "Couldn't calculate hashes." });
+				} catch (err) {
+					console.warn(`Image hashing failed for ${fileName}, skipping score adjustment:`, err.message);
+					resolve(match);
 				}
 			});
 		});
