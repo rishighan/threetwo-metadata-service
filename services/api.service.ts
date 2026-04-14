@@ -1,5 +1,4 @@
-import { IncomingMessage } from "http";
-import { Service, ServiceBroker, Context } from "moleculer";
+import { Service, ServiceBroker } from "moleculer";
 import ApiGateway from "moleculer-web";
 
 export default class ApiService extends Service {
@@ -72,7 +71,7 @@ export default class ApiService extends Service {
 							"POST /": async (req: any, res: any) => {
 								try {
 									const { query, variables, operationName } = req.body;
-									
+
 									const result = await req.$ctx.broker.call("gateway.query", {
 										query,
 										variables,
@@ -151,7 +150,7 @@ export default class ApiService extends Service {
 							"POST /": async (req: any, res: any) => {
 								try {
 									const { query, variables, operationName } = req.body;
-									
+
 									const result = await req.$ctx.broker.call("gateway.queryLocal", {
 										query,
 										variables,

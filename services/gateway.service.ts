@@ -121,14 +121,12 @@ export default class GatewayService extends Service {
 					this.logger.info("Local metadata Apollo Server started");
 
 					// Create local executor
-					const localExecutor: AsyncExecutor = async ({ document, variables, context }) => {
-						return execute({
+					const localExecutor: AsyncExecutor = async ({ document, variables, context }) => execute({
 							schema: localSchema,
 							document,
 							variableValues: variables,
 							contextValue: { broker: context?.broker || this.broker, ctx: context?.ctx },
 						}) as any;
-					};
 
 					// Try to introspect remote schema
 					let remoteSchema = null;
@@ -155,7 +153,7 @@ export default class GatewayService extends Service {
 									{ schema: remoteSchema, executor: this.createRemoteExecutor() },
 								],
 								mergeTypes: false,
-						  })
+							})
 						: localSchema;
 
 					this.apolloServer = new ApolloServer({ schema, introspection: true });
@@ -181,11 +179,11 @@ export default class GatewayService extends Service {
 			/**
 			 * Service lifecycle hooks
 			 */
-			started: async function (this: any) {
+			async started() {
 				await this.initApolloGateway();
 			},
 
-			stopped: async function (this: any) {
+			async stopped() {
 				await this.stopApolloGateway();
 			},
 		});

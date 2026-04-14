@@ -34,10 +34,24 @@ SOFTWARE.
 import { createWriteStream, existsSync, mkdirSync } from "fs";
 import path from "path";
 import https from "https";
-import stringSimilarity from "string-similarity";
-import { isNil, map, isUndefined } from "lodash";
+import { isNil, isUndefined } from "lodash";
 import leven from "leven";
 import { isAfter, isSameYear, parseISO } from "date-fns";
+
+/**
+ * Compute string similarity score (0-1) using Levenshtein distance.
+ * Replaces deprecated string-similarity package.
+ */
+const compareTwoStrings = (str1: string, str2: string): number => {
+	if (str1 === str2) {
+		return 1;
+	}
+	const maxLen = Math.max(str1.length, str2.length);
+	if (maxLen === 0) {
+		return 1;
+	}
+	return 1 - leven(str1, str2) / maxLen;
+};
 
 const imghash = require("imghash");
 
@@ -49,13 +63,13 @@ export const matchScorer = async (
 	const scoredMatches: any = [];
 
 	try {
-		// searchMatches is already an array of match objects, not promises
+		// SearchMatches is already an array of match objects, not promises
 		for (const match of searchMatches) {
 			match.score = 0;
 
 			// Check for the issue name match
 			if (!isNil(searchQuery.name) && !isNil(match.name)) {
-				const issueNameScore = stringSimilarity.compareTwoStrings(
+				const issueNameScore = compareTwoStrings(
 					searchQuery.name,
 					match.name
 				);
@@ -92,7 +106,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 	// 2. If there is a strong string comparison between the volume name and the issue  name ??
 	const issueNumber = parseInt(scorerConfiguration.searchParams.number, 10);
 	const issueYear = parseISO(scorerConfiguration.searchParams.year);
-	const rankedVolumes = volumes.map((volume: any, idx: number) => {
+	const rankedVolumes = volumes.map((volume: any) => {
 		let volumeMatchScore = 0;
 		const volumeStartYear = !isNil(volume.start_year)
 			? parseISO(volume.start_year)
@@ -103,7 +117,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		const lastIssueNumber = !isNil(volume.last_issue)
 			? parseInt(volume.last_issue.issue_number, 10)
 			: null;
-		let issueNameMatchScore = stringSimilarity.compareTwoStrings(
+		let issueNameMatchScore = compareTwoStrings(
 			scorerConfiguration.searchParams.name,
 			volume.name
 		);
@@ -111,7 +125,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 		// If not, move on.
 		let subtitleMatchScore = 0;
 		if (!isNil(scorerConfiguration.searchParams.subtitle)) {
-			subtitleMatchScore = stringSimilarity.compareTwoStrings(
+			subtitleMatchScore = compareTwoStrings(
 				scorerConfiguration.searchParams.subtitle,
 				volume.name
 			);
@@ -143,7 +157,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 				id: volume.id,
 				volumeMatchScore,
 				issueNameMatchScore,
-				totalScore: volumeMatchScore + issueNameMatchScore
+				totalScore: volumeMatchScore + issueNameMatchScore,
 			};
 		}
 		return null;
@@ -152,7 +166,7 @@ export const rankVolumes = (volumes: any, scorerConfiguration: any) => {
 };
 
 const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
-	new Promise((resolve) => {
+	new Promise(resolve => {
 		https.get(match.image.small_url, (response: any) => {
 			console.log(rawFileDetails.cover.filePath);
 			const fileName = match.id + "_" + rawFileDetails.name + ".jpg";
@@ -200,7 +214,8 @@ const calculateLevenshteinDistance = async (match: any, rawFileDetails: any) =>
 					}
 					resolve(match);
 				} catch (err) {
-					console.warn(`Image hashing failed for ${fileName}, skipping score adjustment:`, err.message);
+					const errorMessage = err instanceof Error ? err.message : String(err);
+					console.warn(`Image hashing failed for ${fileName}, skipping score adjustment:`, errorMessage);
 					resolve(match);
 				}
 			});

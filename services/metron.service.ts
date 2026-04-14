@@ -3,8 +3,6 @@
 import axios from "axios";
 import { Context, Service, ServiceBroker } from "moleculer";
 
-const METRON_BASE_URL = "https://metron.cloud/api/";
-
 export default class MetronService extends Service {
 	public constructor(public broker: ServiceBroker) {
 		super(broker);
@@ -34,8 +32,8 @@ export default class MetronService extends Service {
 							},
 							auth: {
 								username: "frishi",
-								password: "Titu@1588"
-							}
+								password: "Titu@1588",
+							},
 						});
 						return results.data;
 					},

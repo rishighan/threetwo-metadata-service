@@ -3,7 +3,6 @@ import {
 	BrokerOptions,
 	Errors,
 	MetricRegistry,
-	ServiceBroker,
 } from "moleculer";
 
 /**
@@ -91,7 +90,7 @@ const brokerConfig: BrokerOptions = {
 		// Backoff factor for delay. 2 means exponential backoff.
 		factor: 2,
 		// A function to check failed requests.
-		check: (err: Errors.MoleculerError) => err && !!err.retryable,
+		check: (err: Errors.MoleculerError | Error) => err && !!(err as Errors.MoleculerError).retryable,
 	},
 
 	// Limit of calling level. If it reaches the limit, broker will throw an MaxCallLevelError error. (Infinite loop protection)
@@ -138,7 +137,7 @@ const brokerConfig: BrokerOptions = {
 		// Number of milliseconds to switch from open to half-open state
 		halfOpenTime: 10 * 1000,
 		// A function to check failed requests.
-		check: (err: Errors.MoleculerError) => err && err.code >= 500,
+		check: (err: Errors.MoleculerError | Error) => err && (err as Errors.MoleculerError).code >= 500,
 	},
 
 	// Settings of bulkhead feature. More info: https://moleculer.services/docs/0.14/fault-tolerance.html#Bulkhead
@@ -154,7 +153,7 @@ const brokerConfig: BrokerOptions = {
 	// Enable action & event parameter validation. More info: https://moleculer.services/docs/0.14/validating.html
 	validator: true,
 
-	errorHandler: null,
+	errorHandler: undefined,
 
 	// Enable/disable built-in metrics function. More info: https://moleculer.services/docs/0.14/metrics.html
 	metrics: {

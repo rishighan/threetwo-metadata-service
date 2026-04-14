@@ -4,7 +4,10 @@ module.exports = {
 		es6: true,
 		node: true
 	},
-	ignorePatterns: [ "test/*"],
+	extends: [
+		"eslint:recommended"
+	],
+	ignorePatterns: ["test/*", ".eslintrc.js"],
 	parser: "@typescript-eslint/parser",
 	parserOptions: {
 		project: "tsconfig.json",
@@ -14,8 +17,6 @@ module.exports = {
 	rules: {
 		"@typescript-eslint/adjacent-overload-signatures": "error",
 		"@typescript-eslint/array-type": "error",
-		"@typescript-eslint/ban-types": "error",
-		"@typescript-eslint/class-name-casing": "off",
 		"@typescript-eslint/consistent-type-assertions": "error",
 		"@typescript-eslint/consistent-type-definitions": "error",
 		"@typescript-eslint/explicit-member-accessibility": [
@@ -24,19 +25,6 @@ module.exports = {
 				accessibility: "explicit"
 			}
 		],
-		"@typescript-eslint/indent": [
-			"off",
-			4,
-			{
-				FunctionDeclaration: {
-					parameters: "first"
-				},
-				FunctionExpression: {
-					parameters: "first"
-				}
-			}
-		],
-		"@typescript-eslint/interface-name-prefix": "off",
 		"@typescript-eslint/member-delimiter-style": [
 			"error",
 			{
@@ -56,9 +44,8 @@ module.exports = {
 		"@typescript-eslint/no-explicit-any": "off",
 		"@typescript-eslint/no-misused-new": "error",
 		"@typescript-eslint/no-namespace": "error",
-		"@typescript-eslint/no-parameter-properties": "off",
 		"@typescript-eslint/no-use-before-define": "off",
-		"@typescript-eslint/no-var-requires": "error",
+		"@typescript-eslint/no-require-imports": "off",
 		"@typescript-eslint/prefer-for-of": "error",
 		"@typescript-eslint/prefer-function-type": "error",
 		"@typescript-eslint/prefer-namespace-keyword": "error",
@@ -85,7 +72,7 @@ module.exports = {
 		"eol-last": "error",
 		eqeqeq: ["error", "smart"],
 		"guard-for-in": "error",
-		"id-blacklist": ["error", "any", "Number", "number", "String", "string", "Boolean", "boolean", "Undefined", "undefined"],
+		"id-denylist": ["error", "any", "Number", "number", "String", "string", "Boolean", "boolean", "Undefined", "undefined"],
 		"id-match": "error",
 		"import/order": "error",
 		"max-classes-per-file": ["error", 1],

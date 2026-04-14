@@ -10,7 +10,7 @@ export const resolvers = {
 		 */
 		searchComicVine: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -20,7 +20,8 @@ export const resolvers = {
 				resources: input.resources,
 				format: input.format || "json",
 				sort: input.sort,
-				field_list: input.field_list,
+				// eslint-disable-next-line camelcase
+				field_list: input.fieldList,
 				limit: input.limit?.toString(),
 				offset: input.offset?.toString(),
 			});
@@ -31,7 +32,7 @@ export const resolvers = {
 		 */
 		volumeBasedSearch: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -59,7 +60,7 @@ export const resolvers = {
 		 */
 		getVolume: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -75,7 +76,7 @@ export const resolvers = {
 		 */
 		getIssuesForSeries: async (_: any, { comicObjectId }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -90,7 +91,7 @@ export const resolvers = {
 		 */
 		getComicVineResource: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -107,7 +108,7 @@ export const resolvers = {
 		 */
 		getStoryArcs: async (_: any, { volumeId }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -122,7 +123,7 @@ export const resolvers = {
 		 */
 		getWeeklyPullList: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -156,7 +157,7 @@ export const resolvers = {
 		 */
 		fetchMetronResource: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
-			
+
 			if (!broker) {
 				throw new Error("Broker not available in context");
 			}
@@ -183,14 +184,8 @@ export const resolvers = {
 
 	// Custom scalar resolver for JSON
 	JSON: {
-		__parseValue(value: any): any {
-			return value;
-		},
-		__serialize(value: any): any {
-			return value;
-		},
-		__parseLiteral(ast: any): any {
-			return ast.value;
-		},
+		__parseValue: (value: any): any => value,
+		__serialize: (value: any): any => value,
+		__parseLiteral: (ast: any): any => ast.value,
 	},
 };

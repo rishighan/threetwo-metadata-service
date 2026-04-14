@@ -2,10 +2,9 @@
 
 import { Service, ServiceBroker, Context } from "moleculer";
 import axios from "axios";
-import { isNil, isUndefined } from "lodash";
-import { fetchReleases, FilterTypes, SortTypes } from "comicgeeks";
+import { isNil } from "lodash";
 import { matchScorer, rankVolumes } from "../utils/searchmatchscorer.utils";
-import { scrapeIssuePage, getWeeklyPullList } from "../utils/scraping.utils";
+import { getWeeklyPullList } from "../utils/scraping.utils";
 const { calculateLimitAndOffset, paginate } = require("paginate-info");
 const { MoleculerError } = require("moleculer").Errors;
 
@@ -25,7 +24,7 @@ export default class ComicVineService extends Service {
 							format: string;
 							sort: string;
 							query: string;
-							field_list: string;
+							fieldList: string;
 							limit: string;
 							offset: string;
 							resources: string;
@@ -61,10 +60,11 @@ export default class ComicVineService extends Service {
 								process.env.COMICVINE_API_KEY,
 							params: {
 								format: "json",
+								// eslint-disable-next-line camelcase
 								field_list: fieldList,
 							},
 							headers: {
-								Accept: "application/json",
+								"Accept": "application/json",
 								"User-Agent": "ThreeTwo",
 							},
 						});
@@ -97,7 +97,7 @@ export default class ComicVineService extends Service {
 								filter: `volume:${comicBookDetails.sourcedMetadata.comicvine.volumeInformation.id}`,
 							},
 							headers: {
-								Accept: "application/json",
+								"Accept": "application/json",
 								"User-Agent": "ThreeTwo",
 							},
 						});
@@ -173,6 +173,7 @@ export default class ComicVineService extends Service {
 								limit: "100",
 								format: "json",
 								filter: `${filter}`,
+								// eslint-disable-next-line camelcase
 								field_list: `${fieldList}`,
 							},
 							headers: {
@@ -201,7 +202,7 @@ export default class ComicVineService extends Service {
 								searchParams: {
 									name: string;
 									subtitle?: string;
-									number: string;
+									issueNumber: string;
 									year: string;
 								};
 							};
@@ -209,35 +210,38 @@ export default class ComicVineService extends Service {
 						}>
 					) => {
 						try {
-							console.log(
-								"Searching against: ",
-								ctx.params.scorerConfiguration.searchParams
-							);
 							const { rawFileDetails, scorerConfiguration } =
 								ctx.params;
+							if (!scorerConfiguration) {
+								throw new Error("scorerConfiguration is required");
+							}
+							console.log(
+								"Searching against: ",
+								scorerConfiguration.searchParams
+							);
 							const results: any = [];
 							console.log(
 								"passed to fetchVolumesFromCV",
 								ctx.params
 							);
-							
+
 							// Send initial status to client
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
 								event: "CV_SCRAPING_STATUS",
 								args: [
 									{
-										message: `Starting volume search for: ${ctx.params.scorerConfiguration.searchParams.name}`,
-										stage: "fetching_volumes"
+										message: `Starting volume search for: ${scorerConfiguration.searchParams.name}`,
+										stage: "fetching_volumes",
 									},
 								],
 							});
-							
+
 							const volumes = await this.fetchVolumesFromCV(
 								ctx.params,
 								results
 							);
-							
+
 							// Notify client that volume fetching is complete
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
@@ -245,20 +249,20 @@ export default class ComicVineService extends Service {
 								args: [
 									{
 										message: `Fetched ${volumes.length} volumes, now ranking matches...`,
-										stage: "ranking_volumes"
+										stage: "ranking_volumes",
 									},
 								],
 							});
-							
+
 							// 1. Run the current batch of volumes through the matcher
 							const potentialVolumeMatches = rankVolumes(
 								volumes,
 								ctx.params.scorerConfiguration
 							);
-							
+
 							// Sort by totalScore in descending order to prioritize best matches
 							potentialVolumeMatches.sort((a: any, b: any) => b.totalScore - a.totalScore);
-							
+
 							// Notify client about ranked matches
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
@@ -266,11 +270,11 @@ export default class ComicVineService extends Service {
 								args: [
 									{
 										message: `Found ${potentialVolumeMatches.length} potential volume matches, searching for issues...`,
-										stage: "searching_issues"
+										stage: "searching_issues",
 									},
 								],
 							});
-							
+
 							// 2. Construct the filter string
 							// 2a. volume: 1111|2222|3333
 							let volumeIdString = "volume:";
@@ -291,20 +295,18 @@ export default class ComicVineService extends Service {
 							let coverDateFilter = "";
 							if (
 								!isNil(
-									ctx.params.scorerConfiguration.searchParams
-										.year
+									scorerConfiguration.searchParams.year
 								)
 							) {
 								const issueYear = parseInt(
-									ctx.params.scorerConfiguration.searchParams
-										.year,
+									scorerConfiguration.searchParams.year,
 									10
 								);
 								coverDateFilter = `cover_date:${
 									issueYear - 1
 								}-01-01|${issueYear + 1}-12-31`;
 							}
-							const filterString = `issue_number:${ctx.params.scorerConfiguration.searchParams.number},${volumeIdString},${coverDateFilter}`;
+							const filterString = `issue_number:${scorerConfiguration.searchParams.issueNumber},${volumeIdString},${coverDateFilter}`;
 							console.log(filterString);
 
 							const issueMatches = await axios({
@@ -327,7 +329,7 @@ export default class ComicVineService extends Service {
 							console.log(
 								`Total issues matching the criteria: ${issueMatches.data.results.length}`
 							);
-							
+
 							// Handle case when no issues are found
 							if (issueMatches.data.results.length === 0) {
 								await this.broker.call("socket.broadcast", {
@@ -335,19 +337,19 @@ export default class ComicVineService extends Service {
 									event: "CV_SCRAPING_STATUS",
 									args: [
 										{
-											message: `No matching issues found. Try adjusting your search criteria.`,
-											stage: "complete"
+											message: "No matching issues found. Try adjusting your search criteria.",
+											stage: "complete",
 										},
 									],
 								});
-								
+
 								return {
 									finalMatches: [],
 									rawFileDetails,
 									scorerConfiguration,
 								};
 							}
-							
+
 							// Notify client about issue matches found
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
@@ -355,11 +357,11 @@ export default class ComicVineService extends Service {
 								args: [
 									{
 										message: `Found ${issueMatches.data.results.length} issue matches, fetching volume details...`,
-										stage: "fetching_volume_details"
+										stage: "fetching_volume_details",
 									},
 								],
 							});
-							
+
 							// 3. get volume information for the issue matches
 							if (issueMatches.data.results.length === 1) {
 								const volumeInformation =
@@ -373,19 +375,19 @@ export default class ComicVineService extends Service {
 									);
 								issueMatches.data.results[0].volumeInformation =
 									volumeInformation;
-								
+
 								// Notify scoring for single match
 								await this.broker.call("socket.broadcast", {
 									namespace: "/",
 									event: "CV_SCRAPING_STATUS",
 									args: [
 										{
-											message: `Scoring 1 match...`,
-											stage: "scoring_matches"
+											message: "Scoring 1 match...",
+											stage: "scoring_matches",
 										},
 									],
 								});
-								
+
 								// Score the single match
 								const scoredMatch = await this.broker.call(
 									"comicvine.getComicVineMatchScores",
@@ -395,19 +397,19 @@ export default class ComicVineService extends Service {
 										scorerConfiguration,
 									}
 								);
-								
+
 								// Notify completion
 								await this.broker.call("socket.broadcast", {
 									namespace: "/",
 									event: "CV_SCRAPING_STATUS",
 									args: [
 										{
-											message: `Search complete! Found 1 match.`,
-											stage: "complete"
+											message: "Search complete! Found 1 match.",
+											stage: "complete",
 										},
 									],
 								});
-								
+
 								return scoredMatch;
 							}
 							const finalMatchesPromises = issueMatches.data.results.map(
@@ -424,10 +426,10 @@ export default class ComicVineService extends Service {
 									return issue;
 								}
 							);
-	
+
 							// Wait for all volume details to be fetched
 							const finalMatches = await Promise.all(finalMatchesPromises);
-	
+
 							// Notify client about scoring
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
@@ -435,11 +437,11 @@ export default class ComicVineService extends Service {
 								args: [
 									{
 										message: `Scoring ${finalMatches.length} matches...`,
-										stage: "scoring_matches"
+										stage: "scoring_matches",
 									},
 								],
 							});
-	
+
 							// Score the final matches
 							const scoredMatches = await this.broker.call(
 								"comicvine.getComicVineMatchScores",
@@ -449,41 +451,42 @@ export default class ComicVineService extends Service {
 									scorerConfiguration,
 								}
 							);
-							
+
 							// Notify completion
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
 								event: "CV_SCRAPING_STATUS",
 								args: [
 									{
-										message: `Search complete! Returning scored matches.`,
-										stage: "complete"
+										message: "Search complete! Returning scored matches.",
+										stage: "complete",
 									},
 								],
 							});
-							
+
 							return scoredMatches;
-						} catch (error) {
+						} catch (err: unknown) {
+							const error = err as any;
 							console.error("Error in volumeBasedSearch:", error);
-							
+
 							// Surface error to UI
 							await this.broker.call("socket.broadcast", {
 								namespace: "/",
 								event: "CV_SCRAPING_STATUS",
 								args: [
 									{
-										message: `Error during search: ${error.message || 'Unknown error'}`,
+										message: `Error during search: ${error.message || "Unknown error"}`,
 										stage: "error",
 										error: {
 											message: error.message,
 											code: error.code,
 											type: error.type,
-											retryable: error.retryable
-										}
+											retryable: error.retryable,
+										},
 									},
 								],
 							});
-							
+
 							// Re-throw or return error response
 							throw error;
 						}
@@ -541,7 +544,8 @@ export default class ComicVineService extends Service {
 								const issuePromises =
 									volumeData.results.issues.map(
 										async (issue: any) => {
-											const issueUrl = `${CV_BASE_URL}issue/4000-${issue.id}/?api_key=${process.env.COMICVINE_API_KEY}&format=json&field_list=story_arc_credits,description,image`;
+											const issueUrl = `${CV_BASE_URL}issue/4000-${issue.id}/?api_key=${process.env.COMICVINE_API_KEY}` +
+												"&format=json&field_list=story_arc_credits,description,image";
 											try {
 												const issueResponse =
 													await axios.get(issueUrl, {
@@ -570,7 +574,8 @@ export default class ComicVineService extends Service {
 														})
 													) || []
 												);
-											} catch (error) {
+											} catch (err: unknown) {
+												const error = err as any;
 												console.error(
 													"An error occurred while fetching issue data:",
 													error.message
@@ -634,11 +639,12 @@ export default class ComicVineService extends Service {
 						try {
 							const response = await axios.get(issuesUrl, {
 								params: {
+									// eslint-disable-next-line camelcase
 									api_key: process.env.COMICVINE_API_KEY,
 									filter: `volume:${volumeId}`,
 									format: "json",
-									field_list:
-										"id,name,image,issue_number,cover_date,description",
+									// eslint-disable-next-line camelcase
+									field_list: "id,name,image,issue_number,cover_date,description",
 									limit: 100,
 								},
 								headers: {
@@ -651,10 +657,8 @@ export default class ComicVineService extends Service {
 							const issuesWithDescriptionImageAndYear =
 								response.data.results.map((issue: any) => {
 									const year = issue.cover_date
-										? new Date(
-												issue.cover_date
-										  ).getFullYear()
-										: null; // Extract the year from cover_date
+										? new Date(issue.cover_date).getFullYear()
+										: null;
 									return {
 										...issue,
 										year,
@@ -664,7 +668,8 @@ export default class ComicVineService extends Service {
 								});
 
 							return issuesWithDescriptionImageAndYear;
-						} catch (error) {
+						} catch (err: unknown) {
+							const error = err as any;
 							this.logger.error(
 								"Error fetching issues from ComicVine:",
 								error.message
