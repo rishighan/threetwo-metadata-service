@@ -202,7 +202,7 @@ export default class ComicVineService extends Service {
 								searchParams: {
 									name: string;
 									subtitle?: string;
-									issueNumber: string;
+									issueNumber?: string;
 									year: string;
 								};
 							};
@@ -306,7 +306,9 @@ export default class ComicVineService extends Service {
 									issueYear - 1
 								}-01-01|${issueYear + 1}-12-31`;
 							}
-							const filterString = `issue_number:${scorerConfiguration.searchParams.issueNumber},${volumeIdString},${coverDateFilter}`;
+							// Access 'number' property from searchParams (may be passed as 'number' or 'issueNumber')
+							const issueNumber = (scorerConfiguration.searchParams as any).number || scorerConfiguration.searchParams.issueNumber;
+							const filterString = `issue_number:${issueNumber},${volumeIdString},${coverDateFilter}`;
 							console.log(filterString);
 
 							const issueMatches = await axios({
