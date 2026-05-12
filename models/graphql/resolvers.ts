@@ -153,7 +153,7 @@ export const resolvers = {
 		},
 
 		/**
-		 * Fetch resource from Metron API
+		 * Fetch resource from Metron API (legacy)
 		 */
 		fetchMetronResource: async (_: any, { input }: any, context: any) => {
 			const { broker } = context;
@@ -162,7 +162,7 @@ export const resolvers = {
 				throw new Error("Broker not available in context");
 			}
 
-			const result = await broker.call("metron.fetchResource", {
+			const result = await broker.call("v1.metron.fetchResource", {
 				resource: input.resource,
 				method: input.method,
 				query: input.query,
@@ -173,6 +173,105 @@ export const resolvers = {
 				status: 200,
 			};
 		},
+
+		// ============================================
+		// Metron Queries
+		// ============================================
+
+		/**
+		 * Check Metron service health and configuration status
+		 */
+		metronHealth: async (_: any, __: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			return broker.call("v1.metron.health");
+		},
+
+		/**
+		 * Search Metron for series by name
+		 */
+		searchMetronSeries: async (_: any, { input }: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			return broker.call("v1.metron.searchSeries", {
+				name: input.name,
+				page: input.page,
+			});
+		},
+
+		/**
+		 * Get Metron series details by ID
+		 */
+		getMetronSeriesById: async (_: any, { id }: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			return broker.call("v1.metron.getSeriesById", { id });
+		},
+
+		/**
+		 * Search Metron for issues with filters
+		 */
+		searchMetronIssues: async (_: any, { input }: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			return broker.call("v1.metron.searchIssues", {
+				// eslint-disable-next-line camelcase
+				series_id: input.series_id,
+				// eslint-disable-next-line camelcase
+				series_name: input.series_name,
+				issueNumber: input.issueNumber,
+				// eslint-disable-next-line camelcase
+				cover_year: input.cover_year,
+				// eslint-disable-next-line camelcase
+				cover_month: input.cover_month,
+				page: input.page,
+			});
+		},
+
+		/**
+		 * Get Metron issue details by ID
+		 */
+		getMetronIssueById: async (_: any, { id }: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			return broker.call("v1.metron.getIssueById", { id });
+		},
+
+		/**
+		 * Advanced volume-based search with scoring (mirrors ComicVine volumeBasedSearch)
+		 */
+		metronVolumeBasedSearch: async (_: any, { input }: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			return broker.call("v1.metron.volumeBasedSearch", {
+				scorerConfiguration: input.scorerConfiguration,
+				rawFileDetails: input.rawFileDetails,
+			});
+		},
 	},
 
 	Mutation: {
@@ -180,6 +279,58 @@ export const resolvers = {
 		 * Placeholder for future mutations
 		 */
 		_empty: (): null => null,
+
+		/**
+		 * Apply Metron metadata to a comic book in the library.
+		 * This fetches the issue and series details from Metron and stores them
+		 * in the comic's sourcedMetadata.metron field.
+		 */
+		applyMetronMetadata: async (_: any, { input }: any, context: any) => {
+			const { broker } = context;
+
+			if (!broker) {
+				throw new Error("Broker not available in context");
+			}
+
+			const { comicObjectId, metronIssueId, metronSeriesId } = input;
+
+			try {
+				// Fetch issue details from Metron
+				const issueDetail = await broker.call("v1.metron.getIssueById", {
+					id: metronIssueId,
+				});
+
+				// Fetch series details from Metron
+				const seriesDetail = await broker.call("v1.metron.getSeriesById", {
+					id: metronSeriesId,
+				});
+
+				// Call library service to update the comic with Metron metadata
+				// Note: This requires the library service to have an applyMetronMetadata action
+				await broker.call("library.applyMetronMetadata", {
+					comicObjectId,
+					metronData: {
+						issue: issueDetail,
+						seriesInformation: seriesDetail,
+						lastUpdated: new Date().toISOString(),
+					},
+				});
+
+				return {
+					success: true,
+					message: "Metron metadata applied successfully",
+					comicObjectId,
+					updatedAt: new Date().toISOString(),
+				};
+			} catch (error: any) {
+				return {
+					success: false,
+					message: error.message || "Failed to apply Metron metadata",
+					comicObjectId,
+					updatedAt: null as string | null,
+				};
+			}
+		},
 	},
 
 	// Custom scalar resolver for JSON
