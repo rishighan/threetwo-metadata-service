@@ -313,11 +313,44 @@ export default class MetronService extends Service {
 
 							const scoredMatches = scoreMetronMatches(candidates, scorerConfiguration);
 
+							// Ensure all matches have valid series.name to prevent GraphQL null errors
+							// GraphQL schema requires series.name to be non-null (String!)
+							const validatedMatches = scoredMatches
+								.filter(match => {
+									// Filter out matches without a valid issue
+									if (!match.issue?.id) {
+										this.logger.warn(`Filtering out match with missing issue id`);
+										return false;
+									}
+									// Filter out matches without a valid series
+									if (!match.series?.id) {
+										this.logger.warn(`Filtering out match with missing series id`);
+										return false;
+									}
+									return true;
+								})
+								.map(match => {
+									// Ensure series.name is never null/undefined
+									// Use fallbacks: sort_name, issue.series.name, or "Unknown Series"
+									const seriesName = match.series.name
+										|| match.series.sort_name
+										|| (match.issue.series as { name?: string })?.name
+										|| `Series #${match.series.id}`;
+									
+									return {
+										...match,
+										series: {
+											...match.series,
+											name: seriesName,
+										},
+									};
+								});
+
 							// Stage 6: Complete
-							await this.broadcastStatus(ctx, "complete", `Found ${scoredMatches.length} matches`);
+							await this.broadcastStatus(ctx, "complete", `Found ${validatedMatches.length} matches`);
 
 							return {
-								finalMatches: scoredMatches,
+								finalMatches: validatedMatches,
 								rawFileDetails,
 								scorerConfiguration,
 							};
