@@ -30,6 +30,7 @@ export default class GatewayService extends Service {
 				 * Execute a GraphQL query through the stitched schema
 				 */
 				query: {
+					timeout: 120000, // 2 minutes for long-running searches like volumeBasedSearch
 					params: {
 						query: "string",
 						variables: { type: "object", optional: true },
@@ -55,6 +56,7 @@ export default class GatewayService extends Service {
 				 * Execute a GraphQL query against local metadata schema only
 				 */
 				queryLocal: {
+					timeout: 120000, // 2 minutes for long-running searches like volumeBasedSearch
 					params: {
 						query: "string",
 						variables: { type: "object", optional: true },
