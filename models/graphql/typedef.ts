@@ -434,6 +434,102 @@ export const typeDefs = gql`
 	}
 
 	# ============================================
+	# GCD (Grand Comics Database) Types
+	# ============================================
+
+	# GCD Publisher
+	type GCDPublisher {
+		id: Int!
+		name: String!
+		country_id: Int
+		year_began: Int
+		year_ended: Int
+		url: String
+	}
+
+	# GCD Series
+	type GCDSeries {
+		id: Int!
+		name: String!
+		sort_name: String
+		year_began: Int
+		year_ended: Int
+		issue_count: Int!
+		publisher_id: Int!
+		notes: String
+		publishing_format: String
+		publisher: GCDPublisher
+	}
+
+	# GCD Issue
+	type GCDIssue {
+		id: Int!
+		issueNumber: String!
+		series_id: Int!
+		publication_date: String
+		key_date: String
+		price: String
+		page_count: Int
+		barcode: String
+		isbn: String
+		variant_of_id: Int
+		variant_name: String
+		notes: String
+		series: GCDSeries
+	}
+
+	# GCD Story
+	type GCDStory {
+		id: Int!
+		title: String
+		type_id: Int!
+		sequence_number: Int!
+		issue_id: Int!
+		page_count: Int
+		synopsis: String
+		characters: String
+	}
+
+	# GCD Series Search Result (paginated)
+	type GCDSeriesSearchResult {
+		count: Int!
+		results: [GCDSeries!]!
+	}
+
+	# GCD Issue Search Result (paginated)
+	type GCDIssueSearchResult {
+		count: Int!
+		results: [GCDIssue!]!
+	}
+
+	# Scored GCD Match (for volumeBasedSearch)
+	type ScoredGCDMatch {
+		issue: GCDIssue!
+		series: GCDSeries!
+		score: Float!
+		nameMatchScore: Float
+		issueNumberScore: Float
+		yearMatchScore: Float
+	}
+
+	# GCD Volume-Based Search Result
+	type GCDVolumeSearchResult {
+		finalMatches: [ScoredGCDMatch!]!
+		rawFileDetails: JSON
+		scorerConfiguration: JSON
+	}
+
+	# GCD Health Check Response
+	type GCDHealthResponse {
+		status: String!
+		configured: Boolean!
+		databasePath: String
+		databaseSize: String
+		lastModified: String
+		error: String
+	}
+
+	# ============================================
 	# Input Types
 	# ============================================
 
@@ -535,28 +631,40 @@ export const typeDefs = gql`
 		rawFileDetails: JSON
 	}
 
-	# Apply Metron metadata input
-	input ApplyMetronMetadataInput {
-		"""
-		MongoDB ObjectId of the comic book to update
-		"""
-		comicObjectId: ID!
-		"""
-		Metron issue ID to apply metadata from
-		"""
-		metronIssueId: Int!
-		"""
-		Metron series ID for series information
-		"""
-		metronSeriesId: Int!
+	# GCD series search input
+	input GCDSeriesSearchInput {
+		name: String!
+		page: Int
+		limit: Int
 	}
 
-	# Apply metadata response
-	type ApplyMetadataResponse {
-		success: Boolean!
-		message: String
-		comicObjectId: ID
-		updatedAt: String
+	# GCD issue search input
+	input GCDIssueSearchInput {
+		series_id: Int
+		series_name: String
+		issueNumber: String
+		year: Int
+		page: Int
+		limit: Int
+	}
+
+	# GCD search parameters for scoring
+	input GCDSearchParamsInput {
+		name: String!
+		issueNumber: String
+		year: String
+		publisher: String
+	}
+
+	# GCD scorer configuration
+	input GCDScorerConfigInput {
+		searchParams: GCDSearchParamsInput!
+	}
+
+	# GCD volume-based search input
+	input GCDVolumeSearchInput {
+		scorerConfiguration: GCDScorerConfigInput!
+		rawFileDetails: JSON
 	}
 
 	# ============================================
@@ -637,6 +745,45 @@ export const typeDefs = gql`
 		Advanced volume-based search with scoring (mirrors ComicVine volumeBasedSearch)
 		"""
 		metronVolumeBasedSearch(input: MetronVolumeSearchInput!): MetronVolumeSearchResult!
+
+		# ============================================
+		# GCD Queries
+		# ============================================
+
+		"""
+		Check GCD service health and database status
+		"""
+		gcdHealth: GCDHealthResponse!
+
+		"""
+		Search GCD for series by name
+		"""
+		searchGCDSeries(input: GCDSeriesSearchInput!): GCDSeriesSearchResult!
+
+		"""
+		Get GCD series details by ID
+		"""
+		getGCDSeriesById(id: Int!): GCDSeries!
+
+		"""
+		Search GCD for issues with filters
+		"""
+		searchGCDIssues(input: GCDIssueSearchInput!): GCDIssueSearchResult!
+
+		"""
+		Get GCD issue details by ID
+		"""
+		getGCDIssueById(id: Int!): GCDIssue!
+
+		"""
+		Get stories for a GCD issue
+		"""
+		getGCDStoriesForIssue(issueId: Int!): [GCDStory!]!
+
+		"""
+		Advanced volume-based search with scoring (mirrors ComicVine volumeBasedSearch)
+		"""
+		gcdVolumeBasedSearch(input: GCDVolumeSearchInput!): GCDVolumeSearchResult!
 	}
 
 	# ============================================
@@ -648,12 +795,5 @@ export const typeDefs = gql`
 		Placeholder for future mutations
 		"""
 		_empty: String
-
-		"""
-		Apply Metron metadata to a comic book in the library.
-		This fetches the issue and series details from Metron and stores them
-		in the comic's sourcedMetadata.metron field.
-		"""
-		applyMetronMetadata(input: ApplyMetronMetadataInput!): ApplyMetadataResponse!
 	}
 `;
