@@ -441,9 +441,10 @@ export const typeDefs = gql`
 	type GCDPublisher {
 		id: Int!
 		name: String!
-		country_id: Int
-		year_began: Int
-		year_ended: Int
+		countryId: Int
+		country: String
+		yearBegan: Int
+		yearEnded: Int
 		url: String
 	}
 
@@ -451,13 +452,16 @@ export const typeDefs = gql`
 	type GCDSeries {
 		id: Int!
 		name: String!
-		sort_name: String
-		year_began: Int
-		year_ended: Int
-		issue_count: Int!
-		publisher_id: Int!
+		sortName: String
+		yearBegan: Int
+		yearEnded: Int
+		issueCount: Int!
+		publisherId: Int!
 		notes: String
-		publishing_format: String
+		publishingFormat: String
+		publicationType: String
+		country: String
+		language: String
 		publisher: GCDPublisher
 	}
 
@@ -465,15 +469,16 @@ export const typeDefs = gql`
 	type GCDIssue {
 		id: Int!
 		issueNumber: String!
-		series_id: Int!
-		publication_date: String
-		key_date: String
+		seriesId: Int!
+		title: String
+		publicationDate: String
+		keyDate: String
 		price: String
-		page_count: Int
+		pageCount: Int
 		barcode: String
 		isbn: String
-		variant_of_id: Int
-		variant_name: String
+		variantOfId: Int
+		variantName: String
 		notes: String
 		series: GCDSeries
 	}
@@ -482,10 +487,10 @@ export const typeDefs = gql`
 	type GCDStory {
 		id: Int!
 		title: String
-		type_id: Int!
-		sequence_number: Int!
-		issue_id: Int!
-		page_count: Int
+		typeId: Int!
+		sequenceNumber: Int!
+		issueId: Int!
+		pageCount: Int
 		synopsis: String
 		characters: String
 	}
@@ -654,6 +659,7 @@ export const typeDefs = gql`
 		issueNumber: String
 		year: String
 		publisher: String
+		subtitle: String
 	}
 
 	# GCD scorer configuration

@@ -17,9 +17,10 @@
 export interface GCDPublisher {
 	id: number;
 	name: string;
-	country_id: number | null;
-	year_began: number | null;
-	year_ended: number | null;
+	countryId: number | null;
+	country: string | null;
+	yearBegan: number | null;
+	yearEnded: number | null;
 	url: string | null;
 }
 
@@ -29,14 +30,17 @@ export interface GCDPublisher {
 export interface GCDSeries {
 	id: number;
 	name: string;
-	sort_name: string | null;
-	year_began: number | null;
-	year_ended: number | null;
-	issue_count: number;
-	publisher_id: number;
+	sortName: string | null;
+	yearBegan: number | null;
+	yearEnded: number | null;
+	issueCount: number;
+	publisherId: number;
 	publisher?: GCDPublisher;
 	notes: string | null;
-	publishing_format: string | null;
+	publishingFormat: string | null;
+	publicationType: string | null;
+	country: string | null;
+	language: string | null;
 }
 
 /**
@@ -45,16 +49,17 @@ export interface GCDSeries {
 export interface GCDIssue {
 	id: number;
 	issueNumber: string;
-	series_id: number;
+	seriesId: number;
 	series?: GCDSeries;
-	publication_date: string | null;
-	key_date: string | null; // YYYY-MM-DD format
+	title: string | null;
+	publicationDate: string | null;
+	keyDate: string | null; // YYYY-MM-DD format
 	price: string | null;
-	page_count: number | null;
+	pageCount: number | null;
 	barcode: string | null;
 	isbn: string | null;
-	variant_of_id: number | null;
-	variant_name: string | null;
+	variantOfId: number | null;
+	variantName: string | null;
 	notes: string | null;
 }
 
@@ -64,10 +69,10 @@ export interface GCDIssue {
 export interface GCDStory {
 	id: number;
 	title: string | null;
-	type_id: number;
-	sequence_number: number;
-	issue_id: number;
-	page_count: number | null;
+	typeId: number;
+	sequenceNumber: number;
+	issueId: number;
+	pageCount: number | null;
 	synopsis: string | null;
 	characters: string | null;
 	credits?: GCDCredit[];
@@ -130,6 +135,7 @@ export interface GCDScorerConfig {
 		issueNumber?: string;
 		year?: string;
 		publisher?: string;
+		subtitle?: string;
 	};
 }
 

@@ -17,23 +17,23 @@ import {
 // Publisher Fixtures
 // ============================================
 
-/* eslint-disable camelcase */
-
 export const mockPublisher: GCDPublisher = {
 	id: 1,
 	name: "DC Comics",
-	country_id: 225,
-	year_began: 1934,
-	year_ended: null,
+	countryId: 225,
+	country: "United States",
+	yearBegan: 1934,
+	yearEnded: null,
 	url: "https://www.dccomics.com",
 };
 
 export const mockPublisher2: GCDPublisher = {
 	id: 2,
 	name: "Marvel Comics",
-	country_id: 225,
-	year_began: 1939,
-	year_ended: null,
+	countryId: 225,
+	country: "United States",
+	yearBegan: 1939,
+	yearEnded: null,
 	url: "https://www.marvel.com",
 };
 
@@ -44,39 +44,48 @@ export const mockPublisher2: GCDPublisher = {
 export const mockSeries: GCDSeries = {
 	id: 100,
 	name: "Batman",
-	sort_name: "Batman",
-	year_began: 1940,
-	year_ended: 2011,
-	issue_count: 713,
-	publisher_id: 1,
+	sortName: "Batman",
+	yearBegan: 1940,
+	yearEnded: 2011,
+	issueCount: 713,
+	publisherId: 1,
 	notes: "The original Batman series",
-	publishing_format: "standard format",
+	publishingFormat: "standard format",
+	publicationType: null,
+	country: "United States",
+	language: "English",
 	publisher: mockPublisher,
 };
 
 export const mockSeries2: GCDSeries = {
 	id: 101,
 	name: "Batman: The Dark Knight",
-	sort_name: "Batman The Dark Knight",
-	year_began: 2011,
-	year_ended: 2014,
-	issue_count: 29,
-	publisher_id: 1,
+	sortName: "Batman The Dark Knight",
+	yearBegan: 2011,
+	yearEnded: 2014,
+	issueCount: 29,
+	publisherId: 1,
 	notes: "New 52 Batman series",
-	publishing_format: "standard format",
+	publishingFormat: "standard format",
+	publicationType: null,
+	country: "United States",
+	language: "English",
 	publisher: mockPublisher,
 };
 
 export const mockSeries3: GCDSeries = {
 	id: 200,
 	name: "Spider-Man",
-	sort_name: "Spider-Man",
-	year_began: 1990,
-	year_ended: 1998,
-	issue_count: 98,
-	publisher_id: 2,
+	sortName: "Spider-Man",
+	yearBegan: 1990,
+	yearEnded: 1998,
+	issueCount: 98,
+	publisherId: 2,
 	notes: "Adjectiveless Spider-Man series",
-	publishing_format: "standard format",
+	publishingFormat: "standard format",
+	publicationType: null,
+	country: "United States",
+	language: "English",
 	publisher: mockPublisher2,
 };
 
@@ -93,15 +102,16 @@ export const mockSeriesArray: GCDSeries[] = [
 export const mockIssue: GCDIssue = {
 	id: 1000,
 	issueNumber: "1",
-	series_id: 100,
-	publication_date: "Spring 1940",
-	key_date: "1940-03-01",
+	seriesId: 100,
+	title: "The Case of the Chemical Syndicate",
+	publicationDate: "Spring 1940",
+	keyDate: "1940-03-01",
 	price: "10c",
-	page_count: 64,
+	pageCount: 64,
 	barcode: null,
 	isbn: null,
-	variant_of_id: null,
-	variant_name: null,
+	variantOfId: null,
+	variantName: null,
 	notes: "First appearance of Batman",
 	series: mockSeries,
 };
@@ -109,15 +119,16 @@ export const mockIssue: GCDIssue = {
 export const mockIssue2: GCDIssue = {
 	id: 1001,
 	issueNumber: "2",
-	series_id: 100,
-	publication_date: "Summer 1940",
-	key_date: "1940-06-01",
+	seriesId: 100,
+	title: null,
+	publicationDate: "Summer 1940",
+	keyDate: "1940-06-01",
 	price: "10c",
-	page_count: 64,
+	pageCount: 64,
 	barcode: null,
 	isbn: null,
-	variant_of_id: null,
-	variant_name: null,
+	variantOfId: null,
+	variantName: null,
 	notes: null,
 	series: mockSeries,
 };
@@ -125,15 +136,16 @@ export const mockIssue2: GCDIssue = {
 export const mockVariantIssue: GCDIssue = {
 	id: 1002,
 	issueNumber: "1",
-	series_id: 100,
-	publication_date: "Spring 1940",
-	key_date: "1940-03-01",
+	seriesId: 100,
+	title: null,
+	publicationDate: "Spring 1940",
+	keyDate: "1940-03-01",
 	price: "10c",
-	page_count: 64,
+	pageCount: 64,
 	barcode: null,
 	isbn: null,
-	variant_of_id: 1000,
-	variant_name: "Variant cover edition",
+	variantOfId: 1000,
+	variantName: "Variant cover edition",
 	notes: "Variant cover",
 	series: mockSeries,
 };
@@ -141,15 +153,16 @@ export const mockVariantIssue: GCDIssue = {
 export const mockIssueWithModernData: GCDIssue = {
 	id: 2000,
 	issueNumber: "1",
-	series_id: 101,
-	publication_date: "November 2011",
-	key_date: "2011-11-01",
+	seriesId: 101,
+	title: "Knight Terrors",
+	publicationDate: "November 2011",
+	keyDate: "2011-11-01",
 	price: "$2.99",
-	page_count: 32,
+	pageCount: 32,
 	barcode: "75960606710200111",
 	isbn: null,
-	variant_of_id: null,
-	variant_name: null,
+	variantOfId: null,
+	variantName: null,
 	notes: "New 52 launch issue",
 	series: mockSeries2,
 };
@@ -168,10 +181,10 @@ export const mockIssueArray: GCDIssue[] = [
 export const mockStory: GCDStory = {
 	id: 10000,
 	title: "The Case of the Chemical Syndicate",
-	type_id: 19, // Comic story
-	sequence_number: 0,
-	issue_id: 1000,
-	page_count: 6,
+	typeId: 19, // Comic story
+	sequenceNumber: 0,
+	issueId: 1000,
+	pageCount: 6,
 	synopsis: "Batman solves his first case",
 	characters: "Batman; Commissioner Gordon",
 };
@@ -179,10 +192,10 @@ export const mockStory: GCDStory = {
 export const mockStory2: GCDStory = {
 	id: 10001,
 	title: "The Batman Wars Against the Dirigible of Doom",
-	type_id: 19,
-	sequence_number: 1,
-	issue_id: 1000,
-	page_count: 8,
+	typeId: 19,
+	sequenceNumber: 1,
+	issueId: 1000,
+	pageCount: 8,
 	synopsis: null,
 	characters: "Batman; Robin",
 };
@@ -190,10 +203,10 @@ export const mockStory2: GCDStory = {
 export const mockCoverStory: GCDStory = {
 	id: 9999,
 	title: null,
-	type_id: 6, // Cover
-	sequence_number: 0,
-	issue_id: 1000,
-	page_count: 1,
+	typeId: 6, // Cover
+	sequenceNumber: 0,
+	issueId: 1000,
+	pageCount: 1,
 	synopsis: null,
 	characters: null,
 };
@@ -265,8 +278,6 @@ export const mockScoredMatchArray: ScoredGCDMatch[] = [
 	mockScoredMatch,
 	mockScoredMatch2,
 ];
-
-/* eslint-enable camelcase */
 
 // ============================================
 // Database Row Fixtures (raw SQLite rows)

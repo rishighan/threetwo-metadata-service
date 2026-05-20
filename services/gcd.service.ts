@@ -390,18 +390,16 @@ export default class GCDService extends Service {
 						const rows = stmt.all(ctx.params.issueId);
 
 						return rows.map((row: Record<string, unknown>) => {
-							/* eslint-disable camelcase */
 							const story: GCDStory = {
 								id: row.id as number,
 								title: row.title as string | null,
-								type_id: row.type_id as number,
-								sequence_number: row.sequence_number as number,
-								issue_id: row.issue_id as number,
-								page_count: row.page_count as number | null,
+								typeId: row.type_id as number,
+								sequenceNumber: row.sequence_number as number,
+								issueId: row.issue_id as number,
+								pageCount: row.page_count as number | null,
 								synopsis: row.synopsis as string | null,
 								characters: row.characters as string | null,
 							};
-							/* eslint-enable camelcase */
 							return story;
 						});
 					},
@@ -637,11 +635,20 @@ export default class GCDService extends Service {
 				fileMustExist: true,
 			});
 
-			// Performance optimizations (readonly-safe pragmas only)
-			// Note: WAL mode cannot be set on readonly databases
-			const cacheSize = process.env.GCD_CACHE_SIZE || "10000";
-			this.db.pragma(`cache_size = ${cacheSize}`);
-			this.db.pragma("temp_store = memory");
+			// Try to set performance optimizations, but don't fail if they don't work
+			// On readonly databases, some SQLite configurations may reject these
+			try {
+				const cacheSize = process.env.GCD_CACHE_SIZE || "10000";
+				this.db.pragma(`cache_size = ${cacheSize}`);
+			} catch (pragmaErr) {
+				this.logger.debug("Could not set cache_size pragma (readonly database):", pragmaErr);
+			}
+
+			try {
+				this.db.pragma("temp_store = memory");
+			} catch (pragmaErr) {
+				this.logger.debug("Could not set temp_store pragma (readonly database):", pragmaErr);
+			}
 
 			this.logger.info("GCD database opened successfully:", dbPath);
 		} catch (err: unknown) {
@@ -708,17 +715,19 @@ export default class GCDService extends Service {
 	 * Maps a database row to a GCDSeries object.
 	 */
 	private mapRowToSeries(row: Record<string, unknown>): GCDSeries {
-		/* eslint-disable camelcase */
 		const series: GCDSeries = {
 			id: row.id as number,
 			name: row.name as string,
-			sort_name: row.sort_name as string | null,
-			year_began: row.year_began as number | null,
-			year_ended: row.year_ended as number | null,
-			issue_count: row.issue_count as number || 0,
-			publisher_id: row.publisher_id as number,
+			sortName: row.sort_name as string | null,
+			yearBegan: row.year_began as number | null,
+			yearEnded: row.year_ended as number | null,
+			issueCount: row.issue_count as number || 0,
+			publisherId: row.publisher_id as number,
 			notes: row.notes as string | null,
-			publishing_format: row.publishing_format as string | null,
+			publishingFormat: row.publishing_format as string | null,
+			publicationType: row.publication_type as string | null,
+			country: row.country_name as string | null,
+			language: row.language_name as string | null,
 		};
 
 		// Add publisher if present
@@ -726,13 +735,13 @@ export default class GCDService extends Service {
 			series.publisher = {
 				id: row.pub_id as number,
 				name: row.pub_name as string,
-				country_id: null,
-				year_began: row.pub_year_began as number | null ?? null,
-				year_ended: null,
-				url: null,
+				countryId: row.pub_country_id as number | null ?? null,
+				country: row.pub_country_name as string | null,
+				yearBegan: row.pub_year_began as number | null ?? null,
+				yearEnded: row.pub_year_ended as number | null ?? null,
+				url: row.pub_url as string | null,
 			};
 		}
-		/* eslint-enable camelcase */
 
 		return series;
 	}
@@ -741,22 +750,21 @@ export default class GCDService extends Service {
 	 * Maps a database row to a GCDIssue object.
 	 */
 	private mapRowToIssue(row: Record<string, unknown>): GCDIssue {
-		/* eslint-disable camelcase */
 		const issue: GCDIssue = {
 			id: row.id as number,
 			issueNumber: row.number as string,
-			series_id: row.series_id as number,
-			publication_date: row.publication_date as string | null,
-			key_date: row.key_date as string | null,
+			seriesId: row.series_id as number,
+			title: row.title as string | null,
+			publicationDate: row.publication_date as string | null,
+			keyDate: row.key_date as string | null,
 			price: row.price as string | null,
-			page_count: row.page_count as number | null,
+			pageCount: row.page_count as number | null,
 			barcode: row.barcode as string | null,
 			isbn: row.isbn as string | null,
-			variant_of_id: row.variant_of_id as number | null,
-			variant_name: row.variant_name as string | null,
+			variantOfId: row.variant_of_id as number | null,
+			variantName: row.variant_name as string | null,
 			notes: row.notes as string | null,
 		};
-		/* eslint-enable camelcase */
 		return issue;
 	}
 
@@ -766,17 +774,19 @@ export default class GCDService extends Service {
 	private mapRowToIssueWithSeries(row: Record<string, unknown>): GCDIssue {
 		const issue = this.mapRowToIssue(row);
 
-		/* eslint-disable camelcase */
 		issue.series = {
 			id: row.s_id as number || row.series_id as number,
 			name: row.series_name as string,
-			sort_name: row.sort_name as string | null,
-			year_began: row.year_began as number | null,
-			year_ended: row.year_ended as number | null,
-			issue_count: row.issue_count as number || 0,
-			publisher_id: row.publisher_id as number,
+			sortName: row.sort_name as string | null,
+			yearBegan: row.year_began as number | null,
+			yearEnded: row.year_ended as number | null,
+			issueCount: row.issue_count as number || 0,
+			publisherId: row.publisher_id as number,
 			notes: null,
-			publishing_format: row.publishing_format as string | null,
+			publishingFormat: row.publishing_format as string | null,
+			publicationType: row.publication_type as string | null,
+			country: row.country_name as string | null,
+			language: row.language_name as string | null,
 		};
 
 		// Add publisher to series if present
@@ -784,13 +794,13 @@ export default class GCDService extends Service {
 			issue.series.publisher = {
 				id: row.pub_id as number,
 				name: row.pub_name as string,
-				country_id: null,
-				year_began: null,
-				year_ended: null,
-				url: null,
+				countryId: row.pub_country_id as number | null ?? null,
+				country: row.pub_country_name as string | null,
+				yearBegan: row.pub_year_began as number | null ?? null,
+				yearEnded: row.pub_year_ended as number | null ?? null,
+				url: row.pub_url as string | null,
 			};
 		}
-		/* eslint-enable camelcase */
 
 		return issue;
 	}

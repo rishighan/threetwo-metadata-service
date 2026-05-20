@@ -122,8 +122,8 @@ const calculateSeriesScore = (
 	}
 
 	// Year matching (0-30 points)
-	if (searchYear && series.year_began) {
-		const yearDiff = Math.abs(series.year_began - searchYear);
+	if (searchYear && series.yearBegan) {
+		const yearDiff = Math.abs(series.yearBegan - searchYear);
 		if (yearDiff === 0) {
 			score += WEIGHTS.YEAR_EXACT;
 		} else if (yearDiff <= 1) {
@@ -134,10 +134,10 @@ const calculateSeriesScore = (
 	}
 
 	// Prefer series with more issues (0-10 points)
-	score += Math.min(WEIGHTS.ISSUE_COUNT_MAX, series.issue_count / 10);
+	score += Math.min(WEIGHTS.ISSUE_COUNT_MAX, series.issueCount / 10);
 
 	// Prefer series with publisher info (0-10 points)
-	if (series.publisher_id) {
+	if (series.publisherId) {
 		score += WEIGHTS.PUBLISHER_PRESENT;
 	}
 
@@ -353,7 +353,7 @@ export const scoreGCDMatches = (
 				config.searchParams.issueNumber
 			);
 			const yearScore = calculateYearScore(
-				c.issue.key_date,
+				c.issue.keyDate,
 				config.searchParams.year
 			);
 
@@ -394,7 +394,7 @@ export const quickRelevanceCheck = (series: GCDSeries, searchName: string): bool
 	const minSimilarity = 0.3;
 
 	const seriesName = series.name?.toLowerCase().trim() || "";
-	const sortName = series.sort_name?.toLowerCase().trim() || "";
+	const sortName = series.sortName?.toLowerCase().trim() || "";
 	const search = searchName.toLowerCase().trim();
 
 	// Quick check: does the search term appear in the name?

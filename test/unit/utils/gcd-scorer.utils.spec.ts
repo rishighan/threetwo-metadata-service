@@ -15,8 +15,6 @@ import {
 	IssueMatchCandidate,
 } from "../../../types/gcd.types";
 
-/* eslint-disable camelcase */
-
 describe("GCD Scorer Utilities", () => {
 	// ============================================
 	// Helper Functions
@@ -30,21 +28,25 @@ describe("GCD Scorer Utilities", () => {
 	): GCDSeries => ({
 		id,
 		name,
-		sort_name: name,
-		year_began: yearBegan,
-		year_ended: null,
-		issue_count: 10,
-		publisher_id: 1,
+		sortName: name,
+		yearBegan,
+		yearEnded: null,
+		issueCount: 10,
+		publisherId: 1,
 		publisher: {
 			id: 1,
 			name: publisherName,
-			country_id: 225,
-			year_began: 1934,
-			year_ended: null,
+			countryId: 225,
+			country: "United States",
+			yearBegan: 1934,
+			yearEnded: null,
 			url: null,
 		},
 		notes: null,
-		publishing_format: "standard format",
+		publishingFormat: "standard format",
+		publicationType: null,
+		country: "United States",
+		language: "English",
 	});
 
 	const createMockIssue = (
@@ -55,15 +57,16 @@ describe("GCD Scorer Utilities", () => {
 	): GCDIssue => ({
 		id,
 		issueNumber,
-		series_id: seriesId,
-		publication_date: null,
-		key_date: keyDate,
+		seriesId,
+		title: null,
+		publicationDate: null,
+		keyDate,
 		price: "$2.99",
-		page_count: 32,
+		pageCount: 32,
 		barcode: null,
 		isbn: null,
-		variant_of_id: null,
-		variant_name: null,
+		variantOfId: null,
+		variantName: null,
 		notes: null,
 	});
 
@@ -214,10 +217,10 @@ describe("GCD Scorer Utilities", () => {
 
 			// 2016 Batman should be ranked higher than 2011 Batman
 			const batman2016Index = ranked.findIndex(
-				(s) => s.name === "Batman" && s.year_began === 2016
+				(s) => s.name === "Batman" && s.yearBegan === 2016
 			);
 			const batman2011Index = ranked.findIndex(
-				(s) => s.name === "Batman" && s.year_began === 2011
+				(s) => s.name === "Batman" && s.yearBegan === 2011
 			);
 			expect(batman2016Index).toBeLessThan(batman2011Index);
 		});
@@ -386,5 +389,3 @@ describe("GCD Scorer Utilities", () => {
 		});
 	});
 });
-
-/* eslint-enable camelcase */

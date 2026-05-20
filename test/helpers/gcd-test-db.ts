@@ -63,6 +63,7 @@ export const createTestDatabase = (): BetterSqlite3Database => {
 			id INTEGER PRIMARY KEY,
 			number TEXT NOT NULL,
 			series_id INTEGER NOT NULL,
+			title TEXT,
 			publication_date TEXT,
 			key_date TEXT,
 			price TEXT,
@@ -103,8 +104,6 @@ export const createTestDatabase = (): BetterSqlite3Database => {
  * @param {BetterSqlite3Database} db - The database to seed
  */
 export const seedTestDatabase = (db: BetterSqlite3Database): void => {
-	/* eslint-disable camelcase */
-
 	// Insert publishers
 	const insertPublisher = db.prepare(`
 		INSERT INTO gcd_publisher (id, name, country_id, year_began, year_ended, url)
@@ -114,17 +113,17 @@ export const seedTestDatabase = (db: BetterSqlite3Database): void => {
 	insertPublisher.run(
 		mockPublisher.id,
 		mockPublisher.name,
-		mockPublisher.country_id,
-		mockPublisher.year_began,
-		mockPublisher.year_ended,
+		mockPublisher.countryId,
+		mockPublisher.yearBegan,
+		mockPublisher.yearEnded,
 		mockPublisher.url
 	);
 	insertPublisher.run(
 		mockPublisher2.id,
 		mockPublisher2.name,
-		mockPublisher2.country_id,
-		mockPublisher2.year_began,
-		mockPublisher2.year_ended,
+		mockPublisher2.countryId,
+		mockPublisher2.yearBegan,
+		mockPublisher2.yearEnded,
 		mockPublisher2.url
 	);
 
@@ -138,35 +137,36 @@ export const seedTestDatabase = (db: BetterSqlite3Database): void => {
 		insertSeries.run(
 			series.id,
 			series.name,
-			series.sort_name,
-			series.year_began,
-			series.year_ended,
-			series.issue_count,
-			series.publisher_id,
+			series.sortName,
+			series.yearBegan,
+			series.yearEnded,
+			series.issueCount,
+			series.publisherId,
 			series.notes,
-			series.publishing_format
+			series.publishingFormat
 		);
 	}
 
 	// Insert issues
 	const insertIssue = db.prepare(`
-		INSERT INTO gcd_issue (id, number, series_id, publication_date, key_date, price, page_count, barcode, isbn, variant_of_id, variant_name, notes)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO gcd_issue (id, number, series_id, title, publication_date, key_date, price, page_count, barcode, isbn, variant_of_id, variant_name, notes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 
 	for (const issue of [mockIssue, mockIssue2, mockVariantIssue, mockIssueWithModernData]) {
 		insertIssue.run(
 			issue.id,
 			issue.issueNumber,
-			issue.series_id,
-			issue.publication_date,
-			issue.key_date,
+			issue.seriesId,
+			issue.title,
+			issue.publicationDate,
+			issue.keyDate,
 			issue.price,
-			issue.page_count,
+			issue.pageCount,
 			issue.barcode,
 			issue.isbn,
-			issue.variant_of_id,
-			issue.variant_name,
+			issue.variantOfId,
+			issue.variantName,
 			issue.notes
 		);
 	}
@@ -181,16 +181,14 @@ export const seedTestDatabase = (db: BetterSqlite3Database): void => {
 		insertStory.run(
 			story.id,
 			story.title,
-			story.type_id,
-			story.sequence_number,
-			story.issue_id,
-			story.page_count,
+			story.typeId,
+			story.sequenceNumber,
+			story.issueId,
+			story.pageCount,
 			story.synopsis,
 			story.characters
 		);
 	}
-
-	/* eslint-enable camelcase */
 };
 
 /**
