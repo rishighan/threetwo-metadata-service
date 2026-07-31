@@ -456,7 +456,7 @@ export default class GCDService extends Service {
 								LEFT JOIN gcd_publisher p ON s.publisher_id = p.id
 								WHERE s.name LIKE ?
 								ORDER BY s.year_began DESC
-								LIMIT 100
+								LIMIT 1000
 							`);
 
 							const seriesRows = seriesStmt.all(`%${searchParams.name}%`);
