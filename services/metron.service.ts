@@ -676,7 +676,7 @@ export default class MetronService extends Service {
 
 				this.logger.info("Metron service stopped");
 			},
-		});
+		} as any);
 	}
 
 	// ============================================

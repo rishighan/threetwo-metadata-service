@@ -237,7 +237,7 @@ export default class ComicVineService extends Service {
 								],
 							});
 
-							const volumes = await this.fetchVolumesFromCV(
+							const volumes = await (this as any).fetchVolumesFromCV(
 								ctx.params,
 								results
 							);
@@ -687,7 +687,7 @@ export default class ComicVineService extends Service {
 				},
 			},
 			methods: {
-				fetchVolumesFromCV: async (payload, output: any[] = []) => {
+				fetchVolumesFromCV: async (payload: any, output: any[] = []) => {
 					const { format, query, limit, page, resources } = payload;
 					let currentPage = parseInt(page, 10);
 					const response = await axios.request({
@@ -742,7 +742,7 @@ export default class ComicVineService extends Service {
 								},
 							],
 						});
-						return await this.fetchVolumesFromCV(
+						return await (this as any).fetchVolumesFromCV(
 							{
 								format,
 								query,
@@ -757,6 +757,6 @@ export default class ComicVineService extends Service {
 					}
 				},
 			},
-		});
+		} as any);
 	}
 }

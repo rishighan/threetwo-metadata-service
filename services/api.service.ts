@@ -4,7 +4,6 @@ import ApiGateway from "moleculer-web";
 export default class ApiService extends Service {
 	public constructor(broker: ServiceBroker) {
 		super(broker);
-		// @ts-ignore
 		this.parseServiceSchema({
 			name: "api",
 			mixins: [ApiGateway],
@@ -292,6 +291,6 @@ export default class ApiService extends Service {
 				},
 				 */
 			},
-		});
+		} as any);
 	}
 }

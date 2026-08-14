@@ -570,7 +570,7 @@ export default class GCDService extends Service {
 				this.closeDatabase();
 				this.logger.info("GCD service stopped");
 			},
-		});
+		} as any);
 	}
 
 	// ============================================

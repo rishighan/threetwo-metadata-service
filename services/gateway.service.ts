@@ -154,7 +154,7 @@ export default class GatewayService extends Service {
 									{ schema: localSchema, executor: localExecutor },
 									{ schema: remoteSchema, executor: this.createRemoteExecutor() },
 								],
-								mergeTypes: false,
+								mergeTypes: true,
 							})
 						: localSchema;
 
@@ -188,6 +188,6 @@ export default class GatewayService extends Service {
 			async stopped() {
 				await this.stopApolloGateway();
 			},
-		});
+		} as any);
 	}
 }

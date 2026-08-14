@@ -1,5 +1,5 @@
-# Use Node 21 as the base image for the builder stage
-FROM node:21-alpine AS builder
+# Use Node 22 as the base image for the builder stage
+FROM node:22-alpine AS builder
 LABEL maintainer="Rishi Ghan <rishi.ghan@gmail.com>"
 
 # Set the working directory
@@ -16,8 +16,8 @@ RUN npm run build
 # Clean up development dependencies
 RUN npm prune --production
 
-# Final image using Node 21
-FROM node:21-alpine
+# Final image using Node 22
+FROM node:22-alpine
 
 LABEL maintainer="Rishi Ghan <rishi.ghan@gmail.com>"
 

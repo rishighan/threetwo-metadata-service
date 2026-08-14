@@ -6,7 +6,6 @@ dotenv.config();
 import {
 	BrokerOptions,
 	Errors,
-	MetricRegistry,
 } from "moleculer";
 
 /**
@@ -67,7 +66,7 @@ const brokerConfig: BrokerOptions = {
 	// More info: https://moleculer.services/docs/0.14/networking.html
 	// Note: During the development, you don't need to define it because all services will be loaded locally.
 	// In production you can set it via `TRANSPORTER=nats://localhost:4222` environment variable.
-	transporter: process.env.REDIS_URI || "redis://localhost:6379", // "NATS"
+	transporter: (process.env.REDIS_URI || "redis://localhost:6379") as any, // "NATS"
 
 	// Define a cacher.
 	// More info: https://moleculer.services/docs/0.14/caching.html
@@ -165,17 +164,6 @@ const brokerConfig: BrokerOptions = {
 		// Available built-in reporters: "Console", "CSV", "Event", "Prometheus", "Datadog", "StatsD"
 		reporter: {
 			type: "Console",
-			options: {
-				// HTTP port
-				port: 3030,
-				// HTTP URL path
-				path: "/metrics",
-				// Default labels which are appended to all metrics labels
-				defaultLabels: (registry: MetricRegistry) => ({
-					namespace: registry.broker.namespace,
-					nodeID: registry.broker.nodeID,
-				}),
-			},
 		},
 	},
 
